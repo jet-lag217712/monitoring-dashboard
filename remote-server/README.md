@@ -99,7 +99,7 @@ They are separate machines.
 On the appliance VM, create the IP-less GNS3 cloud bridge (safe to re-run):
 
 ```bash
-sudo ./setup-gns3-bridge.sh
+make lab-gns3-bridge
 ```
 
 Bind the GNS3 Cloud adapter to `br-gns3` (override with `GNS3_BRIDGE_NAME`).
@@ -109,8 +109,8 @@ checklist in [`deployments/runbooks/field-acceptance-gns3.md`](../deployments/ru
 Synthetic MQTT → API smoke and a Mosquitto outage drill:
 
 ```bash
-./smoke_mqtt_v2_to_api.sh
-sudo ./mqtt_outage_drill.sh
+make lab-smoke
+make lab-mqtt-outage-drill
 ```
 
-`validate-lab.sh` checks this GNS3 project only; it does not start Equate.
+`make lab-validate` checks this GNS3 project only; it does not start Equate.

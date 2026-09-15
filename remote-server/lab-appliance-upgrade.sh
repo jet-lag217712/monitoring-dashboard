@@ -2,8 +2,7 @@
 # Validate in-place appliance upgrade helpers on a configured VM.
 #
 # Usage (on the VM as root, after a release is configured):
-#   OLD_VERSION=0.2.3 NEW_VERSION=0.2.4 BUNDLE=/tmp/equate-staging/bundle \
-#     bash appliance/scripts/e2e-appliance-upgrade.sh
+#   make lab-appliance-upgrade OLD_VERSION=0.2.3 NEW_VERSION=0.2.4 BUNDLE=/tmp/equate-staging/bundle
 #
 # Optional:
 #   CANARY=1            pass --canary to the upgrade

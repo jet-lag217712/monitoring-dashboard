@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Non-interactive E2E appliance setup for lab validation.
+# Non-interactive lab appliance setup. Invoked by: make lab-appliance-setup
 set -euo pipefail
 
 RELEASE_DIR="${RELEASE_DIR:-/opt/equate/current}"
@@ -9,8 +9,6 @@ OPERATOR_USER="${OPERATOR_USER:-equateops}"
 OPERATOR_PASS="${OPERATOR_PASS:-EquateOps123!}"
 SNMP_COMMUNITY="${SNMP_COMMUNITY:-EquateMonitor}"
 COMPOSE_ENV="/run/equate/rendered/compose.env"
-MANAGE_USERS="${RELEASE_DIR}/scripts/manage-users.sh"
-
 if [[ "$(id -u)" -ne 0 ]]; then
   echo "run as root" >&2
   exit 1
@@ -18,12 +16,12 @@ fi
 
 echo "creating appliance users..."
 if ! id "${ADMIN_USER}" &>/dev/null; then
-  "${MANAGE_USERS}" create "${ADMIN_USER}" "${ADMIN_PASS}"
+  equate users create "${ADMIN_USER}" "${ADMIN_PASS}"
 else
   echo "user ${ADMIN_USER} already exists"
 fi
 if ! id "${OPERATOR_USER}" &>/dev/null; then
-  "${MANAGE_USERS}" create "${OPERATOR_USER}" "${OPERATOR_PASS}"
+  equate users create "${OPERATOR_USER}" "${OPERATOR_PASS}"
 else
   echo "user ${OPERATOR_USER} already exists"
 fi
