@@ -28,11 +28,11 @@ kept under runtime/state directories and are never supplied as release inputs.
 
 ## Source checkout
 
-For a local source validation run:
+Stage a release onto an Equate-Appliance VM, then configure with `equate`:
 
 ```bash
-cd deployments/production/appliance
-./bootstrapper.sh
+make appliance-bundle ARCH=arm64 VERSION=<version>
+make appliance-stage HOST=<appliance-vm> ARCH=arm64 VERSION=<version>
 ```
 
 For customer installation, use the checksummed offline release and follow
@@ -42,11 +42,13 @@ For customer installation, use the checksummed offline release and follow
 
 ```bash
 # First boot or deliberate reconfiguration
-./bootstrapper.sh --reconfigure
 sudo equate configure              # full wizard
 sudo equate configure --sites      # sites/SNMP/thresholds only
 sudo equate configure --users      # user management only
 sudo equate configure --temperature 80  # global temperature warning only
+
+# After power loss or reboot (no setup wizard)
+sudo equate restore
 
 # Day-2 collector configuration, per site
 equate view <site-id>

@@ -30,8 +30,12 @@ func main() {
 		code = runView(os.Args[2:])
 	case "sites":
 		code = runSites(os.Args[2:])
+	case "sync-db-roles":
+		code = runSyncDBRoles(os.Args[2:])
 	case "status":
 		code = runStatus(os.Args[2:])
+	case "restore":
+		code = runRestore(os.Args[2:])
 	case "reset":
 		code = runReset(os.Args[2:])
 	case "upgrade":
@@ -52,11 +56,12 @@ func main() {
 func usage() {
 	fmt.Fprintf(os.Stderr, "Usage: equate <command>\n\nCommands:\n")
 	fmt.Fprintf(os.Stderr, "  configure   Run appliance setup wizard (--sites, --users, or --temperature <celsius>)\n")
+	fmt.Fprintf(os.Stderr, "  restore     Rehydrate /run/equate secrets and start the stack after reboot\n")
 	fmt.Fprintf(os.Stderr, "  users       Manage local appliance users (create, delete, list, …)\n")
 	fmt.Fprintf(os.Stderr, "  reset       Stop containers and clear setup state (--hard for full wipe, no restart)\n")
 	fmt.Fprintf(os.Stderr, "  upgrade     In-place upgrade (channel, --bundle, --check, --rollback)\n")
 	fmt.Fprintf(os.Stderr, "  view <site> Open per-site collector operator TUI\n")
-	fmt.Fprintf(os.Stderr, "  sites       List or delete configured sites (list, delete)\n")
+	fmt.Fprintf(os.Stderr, "  sites       List, sync, or delete configured sites\n")
 	fmt.Fprintf(os.Stderr, "  status      Summarize stack health\n")
 	fmt.Fprintf(os.Stderr, "  version     Show release version\n")
 }

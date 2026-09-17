@@ -54,7 +54,7 @@ func TestSelectArtifactEditionMismatch(t *testing.T) {
 			},
 		},
 	}
-	_, _, err := SelectArtifact(m, EditionNoAuth, "amd64")
+	_, _, err := SelectArtifact(m, "noauth", "amd64")
 	if err == nil || !strings.Contains(err.Error(), "edition mismatch") {
 		t.Fatalf("expected edition mismatch, got %v", err)
 	}

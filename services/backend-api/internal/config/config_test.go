@@ -2,9 +2,9 @@ package config
 
 import "testing"
 
-func TestDisabledAuthDoesNotProtectAPIRoutes(t *testing.T) {
-	cfg := Config{Auth: AuthConfig{Enabled: false, Mode: "disabled"}}
-	if cfg.AuthEnabled() {
-		t.Fatal("disabled auth unexpectedly enabled route protection")
+func TestAuthModeDefaultsToApplianceLocal(t *testing.T) {
+	cfg := Config{}
+	if got := cfg.AuthMode(); got != AuthModeApplianceLocal {
+		t.Fatalf("AuthMode=%q, want %s", got, AuthModeApplianceLocal)
 	}
 }

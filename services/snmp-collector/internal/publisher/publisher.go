@@ -7,7 +7,7 @@ import (
 )
 
 // Publisher delivers normalized telemetry events.
-// Implementations: StdoutPublisher (dev) and BufferedPublisher (MQTT/TLS).
+// Implementation: BufferedPublisher (MQTT/TLS).
 type Publisher interface {
 	Publish(ctx context.Context, evs ...events.Event) error
 }

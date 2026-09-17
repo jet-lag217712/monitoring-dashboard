@@ -13,7 +13,7 @@
     },
     "edition": {
       "type": "string",
-      "enum": ["standard", "noauth"]
+      "enum": ["standard"]
     },
     "latest": {
       "type": "string",

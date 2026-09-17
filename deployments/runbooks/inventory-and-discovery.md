@@ -26,5 +26,4 @@ Mutations use prepare → confirm → commit with revision binding, then `config
 - Allowlisted CIDRs + token-bucket rate limits.
 - Never auto-enrolls devices; accept writes managed inventory then requires explicit reload.
 
-See [`services/snmp-collector/README.md`](../../services/snmp-collector/README.md) and
-[`.ai/decisions/collector-6.md`](../../.ai/decisions/collector-6.md).
+See [`services/snmp-collector/README.md`](../../services/snmp-collector/README.md).

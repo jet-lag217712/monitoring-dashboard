@@ -4,18 +4,18 @@ Operator-owned checklist. Not automated in CI.
 
 ## Preconditions
 
-- [ ] Local validation fixture chosen (`development` + vxrail, or `end-to-end`)
-- [ ] Migrations applied before collector enablement
+- [ ] Equate-Appliance VM running `deployments/production/appliance/` (`equate configure` complete)
+- [ ] SNMP reachability into [`remote-server/`](../../remote-server/) GNS3 lab
 - [ ] `community_env` values set locally (never committed)
-- [ ] Mosquitto CA trusted by collector
-- [ ] State volume + `./run` owned by UID `65532`
+- [ ] Mosquitto CA trusted by collectors
+- [ ] Optional: `make lab-gns3-bridge` on the appliance VM
 
 ## Connectivity and health
 
 - [ ] Collector `/healthz` and `/readyz` OK
 - [ ] Ingestion and API health OK
 - [ ] `collector tui` connects via `./run/control.sock`
-- [ ] Synthetic v2 smoke passes (`smoke.sh`)
+- [ ] Synthetic v2 smoke passes (`make lab-smoke`)
 
 ## Polling and telemetry
 
@@ -38,7 +38,7 @@ Operator-owned checklist. Not automated in CI.
 
 ## Failure drills
 
-- [ ] MQTT stop/start: collector stays up; buffer drains after restore (`mqtt_outage_drill.sh`)
+- [ ] MQTT stop/start: collector stays up; buffer drains after restore (`make lab-mqtt-outage-drill`)
 - [ ] SQLite backup/restore or corrupt-DB recovery per queue remediation runbook
 - [ ] Image/config rollback leaves managed state intact when intended
 

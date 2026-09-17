@@ -1,0 +1,8 @@
+# Shell scripts copied into the customer appliance bundle under scripts/.
+# Do not add release, CI, OVA-prep, or debug helpers here.
+auth-broker.sh
+bootstrap-appliance-rendered.sh
+configure-vm.sh
+first-boot-console.sh
+first-boot-needed.sh
+manifest-utils.sh

@@ -39,5 +39,4 @@ codes are `reachable`, `temperature_threshold`, `direct_unreachable`,
 `upstream_unreachable`, and `recovered`. A pending failure does not create a
 terminal transition; its count is evidence attached to the prior state.
 
-See [`collector-1.md`](../../../.ai/decisions/collector-1.md) and the service
-contract documentation for the transition and ownership model.
+See the service contract documentation for the transition and ownership model.

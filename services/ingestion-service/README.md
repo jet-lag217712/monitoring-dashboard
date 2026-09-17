@@ -41,12 +41,8 @@ go test ./...
 go run ./cmd/ingestion -config configs/ingestion.example.yaml
 ```
 
-For integration validation:
-
-```bash
-./deployments/end-to-end/up.sh
-./deployments/end-to-end/smoke.sh
-```
+Full-stack MQTT → API checks run on a configured Equate-Appliance VM with
+`make lab-smoke`.
 
 The default administration listener is `:9091` and exposes only liveness and
 metrics. It is not published by the production appliance.

@@ -48,7 +48,6 @@ func (a *API) Register(mux *http.ServeMux) {
 	mux.HandleFunc("GET /api/devices/{deviceId}/metrics", a.handleListMetrics)
 	mux.HandleFunc("GET /api/alerts", a.handleListAlerts)
 	mux.HandleFunc("GET /api/search", a.handleSearch)
-	mux.HandleFunc("GET /api/test-config", a.handleTestConfig)
 }
 
 func (a *API) handleListSites(w http.ResponseWriter, r *http.Request) {
@@ -597,13 +596,6 @@ func (a *API) handleSearch(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, resp)
-}
-
-func (a *API) handleTestConfig(w http.ResponseWriter, _ *http.Request) {
-	writeJSON(w, http.StatusOK, models.TestConfig{
-		Mode:           "live",
-		PollingEnabled: true,
-	})
 }
 
 func projectDevice(d store.DeviceRow, online bool) derive.DeviceProjection {

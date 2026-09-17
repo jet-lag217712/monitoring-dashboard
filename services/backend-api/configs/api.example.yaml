@@ -7,11 +7,13 @@ admin:
   listen: ":9092"
 
 auth:
-  # Set true in shared/dev/prod. Local integration tests may leave this false.
-  enabled: true
-  # Prefer GOOGLE_CLIENT_ID env; yaml value is a fallback for local-only use.
-  google_client_id_env: "GOOGLE_CLIENT_ID"
-  google_client_id: ""
+  mode: appliance_local
+  broker_socket: "/run/equate/auth.sock"
+  broker_timeout: 3s
+  session_ttl: 12h
+  login_rate_limit: 5
+  login_rate_window: 5m
+  login_rate_entries: 2048
 
 database:
   url_env: "DATABASE_URL"

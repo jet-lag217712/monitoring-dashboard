@@ -20,7 +20,7 @@ usage() {
 usage: stage-release.sh --host <hostname> [--user <ssh-user>] --arch <arm64|amd64> --version <semver> [--remote-dir <path>]
 
 Transfers dist/appliance-<arch>-<version>/ plus configure-vm.sh, bootstrap-appliance-rendered.sh,
-and prepare-ova.sh to the target VM.
+prepare-ova.sh, and the appliance verifiers to the target VM.
 EOF
 }
 
@@ -71,15 +71,18 @@ if [[ ! -d "${BUNDLE_DIR}" ]]; then
 fi
 
 REMOTE="${USER_NAME}@${HOST}"
-SCRIPTS_SRC="${ROOT}/appliance/scripts"
+RUNTIME_SCRIPTS="${ROOT}/deployments/production/appliance/scripts"
+RELEASE_SCRIPTS="${ROOT}/appliance/scripts"
 echo "staging ${BUNDLE_DIR} to ${REMOTE}:${REMOTE_DIR}/"
 
 ssh "${REMOTE}" "mkdir -p '${REMOTE_DIR}/bundle'"
 scp -r "${BUNDLE_DIR}/." "${REMOTE}:${REMOTE_DIR}/bundle/"
 scp \
-  "${SCRIPTS_SRC}/configure-vm.sh" \
-  "${SCRIPTS_SRC}/bootstrap-appliance-rendered.sh" \
-  "${SCRIPTS_SRC}/prepare-ova.sh" \
+  "${RUNTIME_SCRIPTS}/configure-vm.sh" \
+  "${RUNTIME_SCRIPTS}/bootstrap-appliance-rendered.sh" \
+  "${RELEASE_SCRIPTS}/prepare-ova.sh" \
+  "${RELEASE_SCRIPTS}/verify-appliance.sh" \
+  "${RELEASE_SCRIPTS}/verify-ova-import.sh" \
   "${REMOTE}:${REMOTE_DIR}/"
 
 cat <<EOF
@@ -88,8 +91,11 @@ Staged release ${VERSION} (${ARCH}) on ${HOST}.
 
 On the VM (as root):
   Fresh install:
+    make appliance-configure BUNDLE=${REMOTE_DIR}/bundle VERSION=${VERSION}
+    # from a repo checkout on the VM, or:
     sudo bash ${REMOTE_DIR}/configure-vm.sh --bundle ${REMOTE_DIR}/bundle --version ${VERSION}
+  Then:
+    sudo equate configure
   In-place upgrade (preserves sites, database, and secrets):
     sudo equate upgrade --bundle ${REMOTE_DIR}/bundle --version ${VERSION} --yes
-    # or: sudo bash ${REMOTE_DIR}/configure-vm.sh --upgrade --bundle ${REMOTE_DIR}/bundle --version ${VERSION}
 EOF

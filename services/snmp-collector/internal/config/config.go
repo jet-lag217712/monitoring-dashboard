@@ -106,9 +106,9 @@ type DiscoveryConfig struct {
 
 // PublisherConfig selects the publish backend and poller publish timeout.
 type PublisherConfig struct {
-	Mode             string        `yaml:"mode"` // stdout | mqtt
+	Mode             string        `yaml:"mode"` // mqtt
 	Timeout          time.Duration `yaml:"timeout"`
-	TelemetryVersion string        `yaml:"telemetry_version"` // v1 | v2 | both
+	TelemetryVersion string        `yaml:"telemetry_version"` // v2
 }
 
 // BufferConfig controls the durable local SQLite buffer (mqtt mode).
@@ -619,7 +619,7 @@ func (c *Config) applyDefaults() {
 		c.SNMP.Retries = defaultSNMPRetries
 	}
 	if c.Publisher.Mode == "" {
-		c.Publisher.Mode = "stdout"
+		c.Publisher.Mode = "mqtt"
 	}
 	if c.Publisher.Timeout == 0 {
 		c.Publisher.Timeout = defaultPublisherTimeout
@@ -756,20 +756,14 @@ func (c *Config) validate(requireRuntimeSecrets bool) error {
 	if c.Publisher.Timeout <= 0 || c.Publisher.Timeout > maxSNMPTimeout {
 		return fmt.Errorf("publisher.timeout must be between 1ns and %s", maxSNMPTimeout)
 	}
-	switch c.Publisher.Mode {
-	case "stdout", "mqtt":
-	default:
-		return fmt.Errorf("publisher.mode must be \"stdout\" or \"mqtt\"")
+	if c.Publisher.Mode != "mqtt" {
+		return fmt.Errorf("publisher.mode must be \"mqtt\"")
 	}
-	switch c.Publisher.TelemetryVersion {
-	case "v1", "v2", "both":
-	default:
-		return fmt.Errorf("publisher.telemetry_version must be \"v1\", \"v2\", or \"both\"")
+	if c.Publisher.TelemetryVersion != "v2" {
+		return fmt.Errorf("publisher.telemetry_version must be \"v2\"")
 	}
-	if c.Publisher.Mode == "mqtt" {
-		if err := c.validateMQTT(); err != nil {
-			return err
-		}
+	if err := c.validateMQTT(); err != nil {
+		return err
 	}
 	if err := validateDiscovery(c.Discovery); err != nil {
 		return err
@@ -790,7 +784,7 @@ func (c *Config) validate(requireRuntimeSecrets bool) error {
 }
 
 func (c *Config) validateRuntimeSecrets() error {
-	if c.Publisher.Mode == "mqtt" && c.MQTTPassword() == "" {
+	if c.MQTTPassword() == "" {
 		return fmt.Errorf("environment variable %q is required when publisher.mode is mqtt", c.MQTT.PasswordEnv)
 	}
 	return nil

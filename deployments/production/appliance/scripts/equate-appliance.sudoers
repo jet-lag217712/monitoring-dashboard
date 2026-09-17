@@ -1,0 +1,9 @@
+# Managed by configure-vm.sh — passwordless sudo for appliance operators.
+%equate-appliance ALL=(root) NOPASSWD: /usr/local/bin/equate view *
+%equate-appliance ALL=(root) NOPASSWD: /usr/local/bin/equate configure *
+%equate-appliance ALL=(root) NOPASSWD: /usr/local/bin/equate restore
+%equate-appliance ALL=(root) NOPASSWD: /usr/local/bin/equate restore *
+%equate-appliance ALL=(root) NOPASSWD: /usr/local/bin/equate users *
+%equate-appliance ALL=(root) NOPASSWD: /usr/local/bin/equate sites *
+%equate-appliance ALL=(root) NOPASSWD: /usr/local/bin/equate upgrade *
+%equate-appliance ALL=(root) NOPASSWD: /usr/local/bin/equate sync-db-roles

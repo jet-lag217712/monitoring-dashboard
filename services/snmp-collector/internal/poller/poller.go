@@ -265,14 +265,13 @@ func (p *Poller) pollAll(ctx context.Context, cfg *config.Config, devices []conf
 }
 
 func (p *Poller) publishHealth(ctx context.Context, cfg *config.Config, healthEvents []health.Event) {
-	mode := telemetry.ModeFromConfig(cfg)
 	telCtx := telemetry.Context{
 		SiteID:         cfg.SiteID,
 		CollectorID:    cfg.Collector.ID,
 		ConfigRevision: config.ConfigRevision(cfg),
 		EmittedAt:      time.Now().UTC(),
 	}
-	evs := telemetry.HealthEvents(mode, telCtx, cfg.SiteID, healthEvents)
+	evs := telemetry.HealthEvents(telCtx, cfg.SiteID, healthEvents)
 	if len(evs) == 0 {
 		return
 	}
@@ -408,7 +407,7 @@ func (p *Poller) doPoll(ctx context.Context, cfg *config.Config, device config.D
 	p.metrics.InterfaceSelectionTotal.WithLabelValues(string(readings.ExcludedDefault)).Add(float64(result.Filter.ExcludedDefault))
 	p.metrics.InterfaceSelectionTotal.WithLabelValues(string(readings.ExcludedRule)).Add(float64(result.Filter.ExcludedRule))
 
-	evs := telemetry.DeviceEvents(telemetry.ModeFromConfig(cfg), telemetry.Context{
+	evs := telemetry.DeviceEvents(telemetry.Context{
 		SiteID:         cfg.SiteID,
 		CollectorID:    cfg.Collector.ID,
 		ConfigRevision: config.ConfigRevision(cfg),

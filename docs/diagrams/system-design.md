@@ -1,11 +1,12 @@
-# System Design — SNMP Collector v2
+# System Design
 
-This is the maintainable source diagram for the current architecture. Generated exports are derived artifacts.
+This diagram is the canonical local-appliance layout. Service details live in
+[`docs/architecture/`](../architecture/).
 
 ```mermaid
 flowchart LR
     subgraph appliance["Local Equate Appliance"]
-        devices["SNMPv2c devices"] -->|"independent polls"| collector["SNMP Collector v2"]
+        devices["SNMPv2c devices"] -->|"independent polls"| collector["SNMP Collector"]
         inventory["Static + managed inventory"] --> collector
         tui["Local Bubble Tea TUI"] <-->|"Unix socket"| collector
         collector --> outbox["SQLite outbox"]

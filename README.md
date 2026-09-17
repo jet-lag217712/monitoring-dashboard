@@ -122,6 +122,7 @@ Mutations use prepare → confirm → commit → reload. After editing a value,
 | Command | Purpose |
 |---------|---------|
 | [`equate configure`](#equate-configure) | First-boot or reconfigure setup wizard; site/user modes; global temperature |
+| [`equate restore`](#equate-restore) | Rehydrate `/run/equate` secrets and start the stack after power loss or reboot |
 | [`equate sites`](#equate-sites) | List configured sites or delete one site |
 | [`equate upgrade`](#equate-upgrade) | In-place release upgrade (online `.eqa` channel or offline bundle) and rollback |
 | `equate users` | Manage local PAM-backed appliance users |
@@ -191,6 +192,39 @@ Notes:
 - Temperature apply fails if any site collector control socket is unreachable.
 - After a normal `equate reset`, run `sudo equate configure` again before
   returning the appliance to service.
+- After a power cut or reboot, run `sudo equate restore` instead of walking
+  the configure wizard. Restore does not rediscover devices.
+
+---
+
+## `equate restore`
+
+### What it does
+
+`equate restore` brings a configured appliance back after `/run/equate` is
+wiped (reboot or power loss). It copies the durable rendered-secret backup
+from `/var/lib/equate/rendered`, overlays SNMP communities from the deploy
+`.env`, starts Compose, syncs database role passwords, and waits for site
+collectors. It does not open the setup TUI, wipe PostgreSQL, or run a site
+scan.
+
+### Purpose
+
+Use restore when the VM comes back but the dashboard or collectors are down
+because rendered MQTT/TLS/compose secrets lived only on tmpfs.
+
+### How to use it
+
+```bash
+sudo equate restore
+```
+
+Notes:
+
+- The appliance must already be configured (site manifest and generated
+  Compose). First boot remains `sudo equate configure`.
+- The first successful configure/bootstrap persists `/run/equate/rendered`
+  to `/var/lib/equate/rendered`. Restore fails until that backup exists.
 
 ---
 
@@ -203,10 +237,11 @@ Notes:
 - Bare `equate sites` or `equate sites list` prints each site ID, Compose
   service name, collector admin URL, and SNMP CIDR.
 - `equate sites delete <site-id>` permanently removes one site: stops and
-  removes its collector container and volume, rewrites the manifest and
-  generated Compose file, deletes host artifacts under `sites/<site-id>`,
-  deletes related PostgreSQL rows, reconciles the stack, and re-syncs site
-  topology.
+  removes its collector container and volume, deletes related PostgreSQL
+  rows, rewrites the manifest and generated Compose file, deletes host
+  artifacts under `sites/<site-id>`, reconciles the stack, and re-syncs site
+  topology. If the site is already gone from the manifest but still appears
+  on the dashboard, the same command cleans leftover DB rows and artifacts.
 
 ### Purpose
 
@@ -216,9 +251,12 @@ Use sites when you need to:
 - Confirm site IDs before `equate view <site-id>`
 - Retire a monitoring site without running the full configure wizard (which
   risks accidental CIDR or inventory changes)
+- Clear a deleted site that still shows on the frontend after a configure
+  shrink or interrupted delete
 
 Listing is read-only. Delete is destructive and requires confirmation (or
-`--yes`).
+`--yes`). Topology sync after configure/delete also drops Postgres site rows
+that are no longer in the manifest so the dashboard matches `equate sites`.
 
 ### How to use it
 
@@ -232,6 +270,9 @@ sudo equate sites delete campus-a
 
 # Non-interactive delete
 sudo equate sites delete campus-a --yes
+
+# Clean a ghost site that still appears on the dashboard but not in equate sites
+sudo equate sites delete old-campus --yes
 ```
 
 List output columns:
@@ -244,9 +285,8 @@ List output columns:
 | `CIDR` | Configured SNMP discovery / poll network |
 
 Delete confirmation: type the exact `site-id` when prompted, unless `--yes` is
-set. Deleting the last remaining sites leaves the core stack running without
-collectors; add sites again with `sudo equate configure --sites`.
-
+set. You cannot delete the last remaining site from the manifest; use
+`sudo equate configure --sites` to reshape the site list.
 ---
 
 ## `equate upgrade`
@@ -263,7 +303,7 @@ There are three apply paths:
    the matching edition/architecture artifact, downloads a signed `.eqa`
    package, verifies SHA-256 and an Ed25519 signature against the public key
    embedded in `equate`, extracts to `/tmp/equate-staging/bundle`, and applies
-   the release through `configure-vm.sh --upgrade`.
+   the release through `sudo equate upgrade`.
 2. **Offline staged bundle** — when you pass `--bundle` and `--version`, or
    when no channel config exists but a bundle is already staged at
    `/tmp/equate-staging/bundle`, upgrade applies that directory directly.
@@ -287,8 +327,8 @@ Use upgrade to:
 - Recover to the previous release if an upgrade misbehaves (`--rollback`)
 
 Connected updates are optional. Air-gapped installs keep working with offline
-staging only. Standard and NoAuth editions use separate channels and never
-cross-update.
+staging only. The live edition is `standard`; mismatched channel editions are
+rejected.
 
 For release-engineering publish details (Azure Blob layout, signing keys,
 GitHub Actions), see
@@ -308,7 +348,7 @@ edition=standard
 | Key | Required | Meaning |
 |-----|----------|---------|
 | `channel_url` | Yes | HTTPS URL of the channel `manifest.json` |
-| `edition` | Yes | Appliance edition (`standard` or `noauth`); must match the channel |
+| `edition` | Yes | Appliance edition (`standard`); must match the channel |
 
 Example for the public stable channel:
 
@@ -342,7 +382,7 @@ Operator flow:
 3. Download the `.eqa` to `/var/lib/equate/downloads`
 4. Verify SHA-256 and Ed25519 signature against the embedded public key
 5. Extract to `/tmp/equate-staging/bundle`
-6. Run `configure-vm.sh --upgrade` (preserves sites, secrets, and migrations)
+6. `sudo equate upgrade` applies the staged bundle (preserves sites, secrets, and migrations)
 
 ```bash
 # Skip confirmation (automation / remote ops)
@@ -403,7 +443,7 @@ than the installed release.
 - The trust anchor is the public key baked into `equate` (also shipped under
   `appliance/keys/`), not a key fetched from the update host.
 - Edition mismatch fails closed.
-- Apply and rollback remain delegated to `configure-vm.sh`.
+- Apply and rollback are handled by `equate upgrade` / `equate upgrade --rollback`.
 
 ---
 
@@ -482,27 +522,29 @@ Prints `equate <version> (<git-commit>) built <timestamp>`.
 | [`appliance/scripts/`](appliance/scripts/) | Offline release, VM preparation, OVA packaging, `.eqa` publish |
 | [`docs/releases/appliance-ova.md`](docs/releases/appliance-ova.md) | OVA build, first boot, acceptance, and handoff runbook |
 | [`docs/releases/appliance-updates.md`](docs/releases/appliance-updates.md) | Connected `.eqa` updates, signing, and Azure publish |
-| [`docs/architecture/`](docs/architecture/) | Service boundaries, data flow, contracts, and storage |
+| [`docs/architecture/`](docs/architecture/) | v2 contracts and schemas |
 | [`deployments/runbooks/`](deployments/runbooks/) | Installation, TUI operations, rotation, recovery, and rollback |
-| [`.ai/`](.ai/) | Canonical project context, decisions, standards, and roadmap |
+| [`remote-server/`](remote-server/) | GNS3 laboratory network fixtures |
 
-`deployments/end-to-end/` and the development directories are validation
-fixtures for engineers. They are not alternative customer deployment models.
+## Develop on an Equate-Appliance VM
 
-## Local source validation
-
-For a source checkout with Docker Compose and reachable SNMP test devices:
+Stage source onto the appliance VM with Make, then configure with `equate`:
 
 ```bash
-./deployments/end-to-end/up.sh
-./deployments/end-to-end/validate.sh
-./deployments/end-to-end/smoke.sh
-./deployments/end-to-end/acceptance.sh
-./deployments/end-to-end/down.sh
+make appliance-bundle ARCH=arm64 VERSION=<version>
+make appliance-stage HOST=<appliance-vm> ARCH=arm64 VERSION=<version>
 ```
 
-For the supported offline release workflow, use the OVA runbook and the release
-scripts rather than copying service containers or hand-editing a customer VM.
+On the VM (as root):
+
+```bash
+make appliance-configure BUNDLE=/tmp/equate-staging/bundle VERSION=<version>
+sudo equate configure
+```
+
+For SNMP lab work, import [`remote-server/seven-device-c7200.gns3`](remote-server/README.md)
+and run [`deployments/runbooks/field-acceptance-gns3.md`](deployments/runbooks/field-acceptance-gns3.md).
+Repository checks: `make test`.
 
 ## Appliance release
 

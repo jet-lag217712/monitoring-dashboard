@@ -1,5 +1,5 @@
 # On-prem appliance: full stack on one VM. Per-site collectors generated at setup.
-# See bootstrapper.sh and equate configure for first-boot / reconfigure.
+# See equate configure for first-boot / reconfigure.
 #
 # Production bundles set EQUATE_*_IMAGE in release.env (pinned digests). Local dev
 # omits those vars and builds from ../../../ service paths instead.
@@ -107,8 +107,6 @@ services:
       args:
         VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
         VITE_AUTH_MODE: ${VITE_AUTH_MODE:-appliance_local}
-        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:-}
-        VITE_DEMO_ENABLED: ${VITE_DEMO_ENABLED:-false}
     volumes:
       - ./nginx-frontend.conf:/etc/nginx/conf.d/default.conf:ro
       - ${EQUATE_UI_CERTS:-./certs/ui}:/etc/nginx/certificates:ro

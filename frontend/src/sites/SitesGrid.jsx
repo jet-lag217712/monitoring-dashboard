@@ -19,7 +19,7 @@ export default function SitesGrid({
       <PageNavStack breadcrumbItems={[{ label: 'All Sites' }]} />
 
       <PageHeader
-        eyebrow={dataMode === 'live' ? 'Live Network Dashboard' : dataMode === 'demo' ? 'Demo Network Dashboard' : 'Network Dashboard'}
+        eyebrow={dataMode === 'live' ? 'Live Network Dashboard' : 'Network Dashboard'}
         title="All Sites"
         rightContent={<LastUpdatedLabel lastUpdated={lastUpdated} />}
       />

@@ -17,10 +17,8 @@ const (
 	DefaultDownloadDir = "/var/lib/equate/downloads"
 	// DefaultStagingDir is where verified .eqa contents are extracted.
 	DefaultStagingDir = "/tmp/equate-staging/bundle"
-	// EditionStandard is the Google-authenticated appliance line.
+	// EditionStandard is the supported appliance line.
 	EditionStandard = "standard"
-	// EditionNoAuth is the isolated NoAuth appliance line (appliance-3).
-	EditionNoAuth = "noauth"
 )
 
 // ChannelConfig is the on-appliance update channel settings.
@@ -74,9 +72,9 @@ func LoadChannelConfig(path string) (*ChannelConfig, error) {
 		cfg.Edition = EditionStandard
 	}
 	switch cfg.Edition {
-	case EditionStandard, EditionNoAuth:
+	case EditionStandard:
 	default:
-		return nil, fmt.Errorf("unsupported edition %q (want %s or %s)", cfg.Edition, EditionStandard, EditionNoAuth)
+		return nil, fmt.Errorf("unsupported edition %q (want %s)", cfg.Edition, EditionStandard)
 	}
 	return cfg, nil
 }

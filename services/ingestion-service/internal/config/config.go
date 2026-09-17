@@ -109,7 +109,6 @@ func (c *Config) applyDefaults() {
 	}
 	if len(c.MQTT.Topics) == 0 && c.MQTT.Topic == "" {
 		c.MQTT.Topics = []string{
-			"site/+/device/+/metric/#",
 			"site/+/device/+/telemetry/v2/#",
 			"site/+/collector/+/telemetry/v2/heartbeat",
 		}

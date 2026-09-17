@@ -40,7 +40,7 @@ func TestRunner_SamplesDepthBeforeEnqueue(t *testing.T) {
 			HeartbeatInterval: time.Hour,
 		},
 		Publisher: config.PublisherConfig{
-			Mode:             "stdout",
+			Mode:             "mqtt",
 			Timeout:          time.Second,
 			TelemetryVersion: "v2",
 		},
@@ -84,7 +84,7 @@ func TestRunner_SamplesDepthBeforeEnqueue(t *testing.T) {
 	}
 }
 
-func TestRunner_SkipsV1Mode(t *testing.T) {
+func TestRunner_PublishesOnStart(t *testing.T) {
 	cfg := &config.Config{
 		SiteID: "site-001",
 		Collector: config.CollectorConfig{
@@ -92,9 +92,9 @@ func TestRunner_SkipsV1Mode(t *testing.T) {
 			HeartbeatInterval: time.Hour,
 		},
 		Publisher: config.PublisherConfig{
-			Mode:             "stdout",
+			Mode:             "mqtt",
 			Timeout:          time.Second,
-			TelemetryVersion: "v1",
+			TelemetryVersion: "v2",
 		},
 	}
 	pub := &capturePublisher{}
@@ -105,7 +105,7 @@ func TestRunner_SkipsV1Mode(t *testing.T) {
 	r.Run(ctx)
 	pub.mu.Lock()
 	defer pub.mu.Unlock()
-	if len(pub.evs) != 0 {
-		t.Fatalf("v1 mode should not publish heartbeat, got %d", len(pub.evs))
+	if len(pub.evs) == 0 {
+		t.Fatal("expected heartbeat event")
 	}
 }

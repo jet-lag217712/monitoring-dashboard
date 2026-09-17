@@ -66,27 +66,11 @@ func runConfigure(args []string) int {
 		fmt.Fprintf(os.Stderr, "configure: %v\n", err)
 		return 1
 	}
-	if err := runSyncDBRolePasswords(deployDir); err != nil {
+	if err := setup.SyncDBRolePasswords(deployDir); err != nil {
 		fmt.Fprintf(os.Stderr, "configure: %v\n", err)
 		return 1
 	}
-	bootstrapper, err := resolveBootstrapper(deployDir)
-	if err != nil {
-		return runCollectorSetup(deployDir, mode)
-	}
-	cmd := exec.Command(bootstrapper, "--reconfigure", "--mode", mode)
-	cmd.Dir = deployDir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	cmd.Stdin = os.Stdin
-	if err := cmd.Run(); err != nil {
-		if exit, ok := err.(*exec.ExitError); ok {
-			return exit.ExitCode()
-		}
-		fmt.Fprintf(os.Stderr, "configure: %v\n", err)
-		return 1
-	}
-	return 0
+	return runCollectorSetup(deployDir, mode)
 }
 
 func runConfigureTemperature(temp float64) int {
@@ -110,8 +94,24 @@ func runConfigureTemperature(temp float64) int {
 }
 
 func ensureApplianceRenderedSecrets(deployDir string) error {
-	const composeEnv = "/run/equate/rendered/compose.env"
+	return ensureApplianceRenderedSecretsAt(deployDir, setup.DurableRenderedDir, setup.RunRenderedDir)
+}
+
+func ensureApplianceRenderedSecretsAt(deployDir, durableDir, runDir string) error {
+	composeEnv := filepath.Join(runDir, "compose.env")
 	if _, err := os.Stat(composeEnv); err == nil {
+		return nil
+	}
+	if _, err := os.Stat(filepath.Join(durableDir, "compose.env")); err == nil {
+		if err := setup.RestoreRenderedDir(durableDir, runDir); err != nil {
+			return err
+		}
+		if err := setup.OverlaySNMPFromEnvFile(filepath.Join(deployDir, ".env"), runDir); err != nil {
+			return err
+		}
+		if err := setup.PersistRenderedDir(runDir, durableDir); err != nil {
+			return err
+		}
 		return nil
 	}
 	configureScript := filepath.Join(deployDir, "scripts", "configure-vm.sh")
@@ -135,7 +135,7 @@ func runCollectorSetup(deployDir string, mode string) int {
 	_ = os.Remove(filepath.Join(deployDir, ".setup-complete"))
 	collector, err := exec.LookPath("collector")
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "configure: bootstrapper not found and collector not on PATH\n")
+		fmt.Fprintf(os.Stderr, "configure: collector not on PATH\n")
 		return 1
 	}
 	setupArgs := []string{"setup", "-dir", deployDir, "-theme", "auto", "-profile", "appliance", "-reconfigure", mode}

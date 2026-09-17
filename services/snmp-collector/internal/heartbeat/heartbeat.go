@@ -95,11 +95,6 @@ func (r *Runner) publishOnce(ctx context.Context) {
 	if cfg == nil {
 		return
 	}
-	mode := telemetry.ModeFromConfig(cfg)
-	if !telemetry.ShouldPublishHeartbeat(mode) {
-		return
-	}
-
 	started := time.Now()
 	depth, err := r.depth()
 	if err != nil {

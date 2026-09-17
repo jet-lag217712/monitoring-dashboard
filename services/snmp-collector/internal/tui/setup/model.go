@@ -28,26 +28,26 @@ const (
 )
 
 type model struct {
-	deployDir string
-	theme     tui.Theme
-	version   string
-	profile   Profile
+	deployDir  string
+	theme      tui.Theme
+	version    string
+	profile    Profile
 	profileCfg ProfileConfig
-	splash    bool
-	width     int
-	height    int
-	step      step
-	err       string
-	body      string
-	loading   bool
-	spinner   spinner.Model
+	splash     bool
+	width      int
+	height     int
+	step       step
+	err        string
+	body       string
+	loading    bool
+	spinner    spinner.Model
 
 	loadLabel   string
 	loadCurrent int
 	loadTotal   int
 
-	deploySites  []SiteSpec
-	deployPhase  int
+	deploySites []SiteSpec
+	deployPhase int
 
 	reviewAutoIdx   int
 	reviewAutoSites []SiteSpec
@@ -74,12 +74,12 @@ type model struct {
 	adminConfirmInput  textinput.Model
 	adminFocus         int
 
-	usersBody      string
-	usersMode      string
-	usersUsername  textinput.Model
-	usersPassword  textinput.Model
-	usersConfirm   textinput.Model
-	usersFocus     int
+	usersBody     string
+	usersMode     string
+	usersUsername textinput.Model
+	usersPassword textinput.Model
+	usersConfirm  textinput.Model
+	usersFocus    int
 
 	reviewSiteIdx    int
 	reviewCandidates []map[string]any
@@ -247,8 +247,8 @@ func (m model) Init() tea.Cmd {
 }
 
 type asyncDoneMsg struct {
-	err  error
-	body string
+	err   error
+	body  string
 	sites []SiteSpec
 }
 
@@ -805,6 +805,9 @@ func (m model) persistEnvAndSites() tea.Cmd {
 		if err := writeEnvFile(envPath(deployDir), values); err != nil {
 			return asyncDoneMsg{err: err}
 		}
+		if err := persistRenderedSNMPFromDotEnv(envPath(deployDir)); err != nil {
+			return asyncDoneMsg{err: err}
+		}
 		applyEnvToProcess(values)
 		return asyncDoneMsg{
 			body:  fmt.Sprintf("Validated %d site(s). Configure upstream site dependencies next.", len(specs)),
@@ -1183,13 +1186,13 @@ func (m model) View() string {
 func (m model) progressRail() string {
 	order := []step{stepEnv, stepSites, stepSiteTopology, stepStart, stepReview, stepThresholds, stepDone}
 	labels := map[step]string{
-		stepEnv:            "Env",
-		stepSites:          "Sites",
-		stepSiteTopology:   "Topology",
-		stepStart:          "Start",
-		stepReview:         "Review",
-		stepThresholds:     "Thresholds",
-		stepDone:           "Done",
+		stepEnv:          "Env",
+		stepSites:        "Sites",
+		stepSiteTopology: "Topology",
+		stepStart:        "Start",
+		stepReview:       "Review",
+		stepThresholds:   "Thresholds",
+		stepDone:         "Done",
 	}
 	parts := make([]string, len(order))
 	for i, st := range order {

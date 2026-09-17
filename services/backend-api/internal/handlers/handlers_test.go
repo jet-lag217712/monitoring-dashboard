@@ -15,28 +15,6 @@ import (
 	"github.com/google/uuid"
 )
 
-func TestTestConfigShape(t *testing.T) {
-	api := handlers.New(nil, slog.New(slog.NewTextHandler(io.Discard, nil)), 5*time.Minute)
-	mux := http.NewServeMux()
-	api.Register(mux)
-
-	req := httptest.NewRequest(http.MethodGet, "/api/test-config", nil)
-	rec := httptest.NewRecorder()
-	mux.ServeHTTP(rec, req)
-
-	if rec.Code != http.StatusOK {
-		t.Fatalf("status=%d body=%s", rec.Code, rec.Body.String())
-	}
-
-	var cfg models.TestConfig
-	if err := json.Unmarshal(rec.Body.Bytes(), &cfg); err != nil {
-		t.Fatal(err)
-	}
-	if cfg.Mode != "live" || !cfg.PollingEnabled {
-		t.Fatalf("unexpected config: %+v", cfg)
-	}
-}
-
 func TestErrorEnvelopeShape(t *testing.T) {
 	// Exercise CORS + OPTIONS path and ensure JSON content-type on a 404 from mux.
 	mux := http.NewServeMux()

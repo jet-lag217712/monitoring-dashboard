@@ -14,8 +14,6 @@ import (
 
 // Persister is the store boundary used by the handler (tests inject fakes).
 type Persister interface {
-	PersistDeviceSample(ctx context.Context, sample transform.DeviceSample) (store.Result, error)
-	PersistInterfaceSample(ctx context.Context, sample transform.InterfaceSample) (store.Result, error)
 	PersistDeviceTelemetry(ctx context.Context, sample transform.DeviceTelemetrySample) (store.Result, error)
 	PersistInterfaceTelemetry(ctx context.Context, sample transform.InterfaceTelemetrySample) (store.Result, error)
 	PersistHealth(ctx context.Context, sample transform.HealthSample) (store.Result, error)
@@ -55,10 +53,6 @@ func (h *Handler) Handle(ctx context.Context, topic string, payload []byte) (ack
 	}
 
 	switch msg.Kind {
-	case validate.KindDevice:
-		return h.handleDevice(ctx, msg.Device)
-	case validate.KindInterface:
-		return h.handleInterface(ctx, msg.Interface)
 	case validate.KindDeviceV2:
 		return h.handleDeviceV2(ctx, msg.DeviceV2)
 	case validate.KindInterfaceV2:
@@ -72,51 +66,6 @@ func (h *Handler) Handle(ctx context.Context, topic string, payload []byte) (ack
 		h.log.Warn("rejected", "topic", topic, "result", "rejected", "err", "unknown kind")
 		return true
 	}
-}
-
-func (h *Handler) handleDevice(ctx context.Context, msg *validate.DeviceMessage) bool {
-	sample := transform.DeviceSampleFromValidated(*msg)
-	result, err := h.store.PersistDeviceSample(ctx, sample)
-	if err != nil {
-		if errors.Is(err, store.ErrUnknownMetricType) {
-			h.metrics.MessagesRejected.Inc()
-			h.log.Warn("rejected",
-				"site_id", msg.SiteID,
-				"device_id", msg.DeviceID,
-				"metric", msg.Metric,
-				"result", "rejected",
-				"err", err,
-			)
-			return true
-		}
-		h.metrics.DBWriteFailure.Inc()
-		h.log.Error("database_error",
-			"site_id", msg.SiteID,
-			"device_id", msg.DeviceID,
-			"metric", msg.Metric,
-			"result", "database_error",
-			"err", err,
-		)
-		return false
-	}
-	return h.recordResult(msg.SiteID, msg.DeviceID, msg.Metric, result)
-}
-
-func (h *Handler) handleInterface(ctx context.Context, msg *validate.InterfaceMessage) bool {
-	sample := transform.InterfaceSampleFromValidated(*msg)
-	result, err := h.store.PersistInterfaceSample(ctx, sample)
-	if err != nil {
-		h.metrics.DBWriteFailure.Inc()
-		h.log.Error("database_error",
-			"site_id", msg.SiteID,
-			"device_id", msg.DeviceID,
-			"if_index", msg.IfIndex,
-			"result", "database_error",
-			"err", err,
-		)
-		return false
-	}
-	return h.recordResult(msg.SiteID, msg.DeviceID, "interface", result)
 }
 
 func (h *Handler) handleDeviceV2(ctx context.Context, msg *validate.DeviceTelemetryV2) bool {

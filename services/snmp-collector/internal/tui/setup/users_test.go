@@ -7,37 +7,45 @@ import (
 	"testing"
 )
 
-func TestResolvePamHelperPrefersDeployScript(t *testing.T) {
-	deployDir := t.TempDir()
-	script := filepath.Join(deployDir, "scripts", "manage-users.sh")
-	if err := os.MkdirAll(filepath.Dir(script), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := os.WriteFile(script, []byte("#!/usr/bin/env bash\n"), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	got, err := resolvePamHelper(deployDir)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if got != script {
-		t.Fatalf("helper=%q", got)
+func TestPamUserCreateRejectsInvalidUsername(t *testing.T) {
+	if err := pamUserCreate("Alice", "secret"); err == nil {
+		t.Fatal("expected invalid username")
 	}
 }
 
-func TestPamUserListWithStubScript(t *testing.T) {
-	script := filepath.Join(t.TempDir(), "manage-users.sh")
-	if err := os.WriteFile(script, []byte(`#!/usr/bin/env bash
-set -euo pipefail
-case "$1" in
-  list) echo '[{"username":"alice","disabled":false}]' ;;
-  *) exit 2 ;;
-esac
-`), 0o755); err != nil {
+func TestPamUserCreateWithStubHost(t *testing.T) {
+	orig := runHost
+	t.Cleanup(func() { runHost = orig })
+	runHost = func(cmd hostCmd) (string, error) {
+		switch cmd.Name {
+		case "getent":
+			return "", os.ErrNotExist
+		case "groupadd", "useradd", "chpasswd":
+			return "", nil
+		case "id":
+			return "", os.ErrNotExist
+		default:
+			return "", os.ErrNotExist
+		}
+	}
+	if err := pamUserCreate("alice", "secret"); err != nil {
 		t.Fatal(err)
 	}
+}
 
-	out, err := pamUserList(script)
+func TestApplianceUsersParsesGetent(t *testing.T) {
+	orig := runHost
+	t.Cleanup(func() { runHost = orig })
+	runHost = func(cmd hostCmd) (string, error) {
+		if cmd.Name == "getent" {
+			return "equate-appliance:x:900:alice\n", nil
+		}
+		if cmd.Name == "passwd" {
+			return "alice P\n", nil
+		}
+		return "", os.ErrNotExist
+	}
+	out, err := pamUserList()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -46,18 +54,9 @@ esac
 	}
 }
 
-func TestPamUserCreateWithStubScript(t *testing.T) {
-	script := filepath.Join(t.TempDir(), "manage-users.sh")
-	if err := os.WriteFile(script, []byte(`#!/usr/bin/env bash
-set -euo pipefail
-case "$1" in
-  create) echo "created $2" ;;
-  *) exit 2 ;;
-esac
-`), 0o755); err != nil {
-		t.Fatal(err)
-	}
-	if err := pamUserCreate(script, "alice", "secret"); err != nil {
+func TestSiteArtifactDirStillCreated(t *testing.T) {
+	deployDir := t.TempDir()
+	if err := os.MkdirAll(filepath.Join(deployDir, "scripts"), 0o755); err != nil {
 		t.Fatal(err)
 	}
 }

@@ -10,8 +10,8 @@ import (
 )
 
 type siteProjectionBundle struct {
-	counts derive.SiteHealthCounts
-	state  derive.SiteDependencyState
+	counts  derive.SiteHealthCounts
+	state   derive.SiteDependencyState
 	devices map[string]projectedDevice
 }
 

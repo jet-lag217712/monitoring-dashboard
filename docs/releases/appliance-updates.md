@@ -1,12 +1,11 @@
 # Equate appliance connected updates
 
 **Status:** Engineering  
-**Audience:** Release engineering, appliance operators  
-**Authority:** [`.ai/decisions/appliance-4.md`](../../.ai/decisions/appliance-4.md), [`.ai/project-context/appliance.md`](../../.ai/project-context/appliance.md)
+**Audience:** Release engineering, appliance operators
 
 Connected updates let a configured appliance fetch a signed `.eqa` release from
 **Azure Blob Storage** (or compatible HTTPS static hosting), verify it, and apply
-it through the existing `configure-vm.sh --upgrade` path. Air-gapped sites keep
+it through `sudo equate upgrade`. Air-gapped sites keep
 using offline staging.
 
 ## Operator flow (connected)
@@ -75,7 +74,7 @@ EQUATE-EQA-v1\n
 
 The verifying public key is embedded in `equate` (`internal/update.EmbeddedPublicKeyHex`)
 and also stored at `appliance/keys/equate-updates.pub`. Regenerate with
-`appliance/scripts/generate-update-keys.sh` and update both places together.
+`make appliance-generate-keys KEYS_DIR=/secure/equate-keys` and update both places together.
 **Never commit the private key.**
 
 ## Azure publish (public-read)
@@ -90,8 +89,7 @@ You already created the storage account. Finish container + public access:
 
 ```bash
 az login
-./appliance/scripts/setup-update-channel-azure.sh \
-  --storage-account <your-storage-account>
+make appliance-setup-azure-channel STORAGE_ACCOUNT=<your-storage-account>
 ```
 
 That enables `allowBlobPublicAccess` and creates/updates container `updates`
@@ -173,13 +171,7 @@ Manual (local) publish still works:
 ```bash
 EQUATE_UPDATE_SIGNING_KEY=/secure/equate-updates.priv \
   make appliance-package ARCH=amd64 VERSION=1.0.3
-./appliance/scripts/publish-update-channel-azure.sh \
-  --storage-account <account> \
-  --container updates \
-  --channel stable \
-  --edition standard \
-  --arch amd64 \
-  --version 1.0.3
+make appliance-publish-azure STORAGE_ACCOUNT=<account> VERSION=1.0.3 ARCH=amd64
 ```
 
 Blob layout:
@@ -191,7 +183,7 @@ v1/channel/<channel>/<version>/Equate-<version>-<arch>.eqa.sha256
 v1/channel/<channel>/<version>/Equate-<version>-<arch>.eqa.sig
 ```
 
-Use a separate channel (and `edition=noauth`) for the NoAuth appliance line.
+Use a separate channel name if you need an isolated update line.
 Cross-edition updates are rejected.
 
 After the first successful publish, point appliances at:
@@ -234,4 +226,4 @@ and the JSON Schema at
 - SHA-256 and Ed25519 signature must verify before extract/apply.
 - Trust anchor is the public key baked into `equate`, not fetched from Azure.
 - Edition mismatch fails closed.
-- Upgrade/rollback application remains `configure-vm.sh`.
+- Upgrade/rollback application remains `sudo equate upgrade`.

@@ -8,7 +8,6 @@ mqtt:
   password_env: "MQTT_PASSWORD"
   qos: 1
   topics:
-    - "site/+/device/+/metric/#"
     - "site/+/device/+/telemetry/v2/#"
     - "site/+/collector/+/telemetry/v2/heartbeat"
   tls:
