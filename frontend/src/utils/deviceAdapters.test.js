@@ -34,7 +34,7 @@ describe('adaptDeviceDetail', () => {
           sysObjectID: '1.3.6.1.4.1.9.1.9999',
           sysDescr: 'Sanitized',
         },
-        power_components: [{ component_id: 'power-1', name: 'PSU 1', status: 'ok', unit: 'state' }],
+        upstream_site: 'Site-A',
         history: {
           cpu: [],
           memory: [],
@@ -51,7 +51,7 @@ describe('adaptDeviceDetail', () => {
     expect(adapted.cpu_pct).toBeNull()
     expect(adapted.memory_pct).toBeNull()
     expect(adapted.snmp.sysObjectID).toBe('1.3.6.1.4.1.9.1.9999')
-    expect(adapted.power_components).toHaveLength(1)
+    expect(adapted.upstream_site).toBe('Site-A')
     expect(adapted.history.temperature).toHaveLength(1)
     expect(adapted.admin_status).toBe('down')
   })
@@ -72,8 +72,11 @@ describe('adaptInterface', () => {
       admin_status: 'up',
       oper_status: 'up',
       speed_bps: 1_000_000_000,
+      duplex: 'full',
       in_octets: 100,
       out_octets: 50,
+      in_packets: 42,
+      out_packets: 21,
       in_errors: 1,
       out_errors: 0,
       traffic_history: [
@@ -82,6 +85,9 @@ describe('adaptInterface', () => {
       ],
     })
     expect(adapted.bytes_in).toBe(100)
+    expect(adapted.packets_in).toBe(42)
+    expect(adapted.packets_out).toBe(21)
+    expect(adapted.duplex).toBe('full')
     expect(adapted.errors_in).toBe(1)
     expect(adapted.traffic_history).toHaveLength(1)
     expect(adapted.traffic_history[0].in_mbps).toBe(1)

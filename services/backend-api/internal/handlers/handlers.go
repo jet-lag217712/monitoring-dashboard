@@ -320,16 +320,25 @@ func (a *API) handleGetDevice(w http.ResponseWriter, r *http.Request) {
 	proj := derive.ApplySiteDependencyOverlay(bundle.state, projectDevice(d, online))
 	upstreamSites, unavailableSites, rootCauseSites := deviceSiteTopologyFields(bundle.state)
 
-	tempComponents, err := a.store.ListTemperatureComponents(ctx, d.ID)
-	if err != nil {
-		a.writeStoreError(w, err)
-		return
+	sitesByName := make(map[string]derive.SiteLabelInput, len(sites))
+	topologyNodes := make([]derive.SiteTopologyNode, 0, len(sites))
+	for _, site := range sites {
+		loc := ""
+		if site.Location != nil {
+			loc = *site.Location
+		}
+		sitesByName[site.Name] = derive.SiteLabelInput{Name: site.Name, Location: loc}
+		topologyNodes = append(topologyNodes, derive.SiteTopologyNode{
+			Name:            site.Name,
+			UpstreamSiteIDs: append([]string(nil), site.UpstreamSiteIDs...),
+		})
 	}
-	powerComponents, err := a.store.ListPowerComponents(ctx, d.ID)
-	if err != nil {
-		a.writeStoreError(w, err)
-		return
+	topology := derive.CompleteMissingSiteUpstreams(derive.BuildSiteTopologyIndex(topologyNodes))
+	upstreamIDs := bundle.state.UpstreamSiteIDs
+	if node, ok := topology[d.SiteName]; ok && len(node.UpstreamSiteIDs) > 0 {
+		upstreamIDs = node.UpstreamSiteIDs
 	}
+	upstreamSite := derive.UpstreamSiteLabel(d.SiteName, upstreamIDs, sitesByName)
 
 	historyStart := a.now().Add(-store.DefaultHistoryWindow)
 	history, err := a.loadDeviceHistory(ctx, d.ID, &historyStart)
@@ -363,8 +372,7 @@ func (a *API) handleGetDevice(w http.ResponseWriter, r *http.Request) {
 		UptimeDays:             derive.UptimeDays(d.UptimeSeconds),
 		LatencyMs:              nil,
 		LastSeen:               d.LastSeen,
-		TemperatureComponents:  toComponents(tempComponents),
-		PowerComponents:        toComponents(powerComponents),
+		UpstreamSite:           upstreamSite,
 		History:                history,
 	}
 	if d.Serial != nil {
@@ -452,6 +460,15 @@ func (a *API) handleListInterfaces(w http.ResponseWriter, r *http.Request) {
 		}
 		if iface.OperStatus != nil {
 			info.OperStatus = *iface.OperStatus
+		}
+		if iface.Duplex != nil {
+			info.Duplex = *iface.Duplex
+		}
+		if iface.InPackets != nil {
+			info.InPackets = iface.InPackets
+		}
+		if iface.OutPackets != nil {
+			info.OutPackets = iface.OutPackets
 		}
 		traffic, err := a.store.ListInterfaceTrafficHistory(ctx, iface.ID, historyStart)
 		if err != nil {

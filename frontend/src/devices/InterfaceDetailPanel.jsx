@@ -1,5 +1,5 @@
 import InterfaceTrafficChart from '../charts/InterfaceTrafficChart.jsx'
-import { formatBytes, formatNumber, formatTimestamp } from '../utils/formatters.js'
+import { formatBytes, formatNumber } from '../utils/formatters.js'
 
 function InfoItem({ label, children }) {
   return (
@@ -40,18 +40,11 @@ export default function InterfaceDetailPanel({ iface }) {
         <InfoItem label="Operational Status">
           <PortStatusBadge status={iface.oper_status} />
         </InfoItem>
-        <InfoItem label="Port Speed">{iface.speed ?? '—'}</InfoItem>
         <InfoItem label="Duplex">{iface.duplex ?? '—'}</InfoItem>
-        <InfoItem label="Port Utilization">
-          {iface.utilization_pct != null ? `${iface.utilization_pct}%` : '—'}
-        </InfoItem>
         <InfoItem label="Bytes In">{formatBytes(iface.bytes_in)}</InfoItem>
         <InfoItem label="Bytes Out">{formatBytes(iface.bytes_out)}</InfoItem>
         <InfoItem label="Packets In">{formatNumber(iface.packets_in)}</InfoItem>
         <InfoItem label="Packets Out">{formatNumber(iface.packets_out)}</InfoItem>
-        <InfoItem label="Errors In">{formatNumber(iface.errors_in)}</InfoItem>
-        <InfoItem label="Errors Out">{formatNumber(iface.errors_out)}</InfoItem>
-        <InfoItem label="Last Status Change">{formatTimestamp(iface.last_status_change)}</InfoItem>
         <InfoItem label="Description">{iface.description ?? '—'}</InfoItem>
       </div>
 

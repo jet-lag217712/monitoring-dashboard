@@ -7,6 +7,10 @@ CREATE TABLE interface_samples (
 
                                    out_octets BIGINT,
 
+                                   in_packets BIGINT,
+
+                                   out_packets BIGINT,
+
                                    in_errors BIGINT,
 
                                    out_errors BIGINT,

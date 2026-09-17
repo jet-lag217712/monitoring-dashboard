@@ -16,7 +16,8 @@
       "type": "ethernetCsmacd",
       "admin_status": "up",
       "oper_status": "up",
-      "speed_bps": 1000000000
+      "speed_bps": 1000000000,
+      "duplex": "full"
     },
     "counters": {
       "in_octets": 123,
@@ -24,7 +25,9 @@
       "in_errors": 0,
       "out_errors": 0,
       "in_discards": 0,
-      "out_discards": 0
+      "out_discards": 0,
+      "in_packets": 10,
+      "out_packets": 12
     }
   }
 }

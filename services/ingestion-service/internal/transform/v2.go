@@ -62,6 +62,9 @@ type InterfaceTelemetrySample struct {
 	OutErrors     uint64
 	InDiscards    *uint64
 	OutDiscards   *uint64
+	InPackets     *uint64
+	OutPackets    *uint64
+	Duplex        *string
 }
 
 // HealthSample is a transformed v2 health state event.
@@ -176,6 +179,9 @@ func InterfaceTelemetryFromValidated(msg validate.InterfaceTelemetryV2) Interfac
 		OutErrors:      msg.OutErrors,
 		InDiscards:     msg.InDiscards,
 		OutDiscards:    msg.OutDiscards,
+		InPackets:      msg.InPackets,
+		OutPackets:     msg.OutPackets,
+		Duplex:         msg.Duplex,
 	}
 }
 

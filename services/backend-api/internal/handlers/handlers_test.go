@@ -202,9 +202,7 @@ func TestDeviceDetailJSONKeys(t *testing.T) {
 			SysObjectID: "1.3.6.1.4.1.9.1.9999",
 			SysDescr:    "Sanitized lab fixture",
 		},
-		PowerComponents: []models.ComponentReading{
-			{ComponentID: "power-1", Name: "PSU 1", Status: "ok", Unit: "state"},
-		},
+		UpstreamSite: "Site-A",
 		History: &models.DeviceHistory{
 			CPU:         []models.MetricPoint{},
 			Memory:      []models.MetricPoint{},
@@ -222,7 +220,7 @@ func TestDeviceDetailJSONKeys(t *testing.T) {
 	}
 	for _, key := range []string{
 		"id", "site_id", "hostname", "status", "status_reason", "temperature_c",
-		"serial_number", "profile", "snmp", "power_components", "history",
+		"serial_number", "profile", "snmp", "upstream_site", "history",
 	} {
 		if _, ok := decoded[key]; !ok {
 			t.Fatalf("missing key %q", key)

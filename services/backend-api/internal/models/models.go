@@ -170,6 +170,7 @@ type DeviceDetail struct {
 	UpstreamSiteIDs        []string           `json:"upstream_site_ids,omitempty"`
 	UnavailableUpstreamSiteIDs []string       `json:"unavailable_upstream_site_ids,omitempty"`
 	RootCauseSiteIDs       []string           `json:"root_cause_site_ids,omitempty"`
+	UpstreamSite           string             `json:"upstream_site,omitempty"`
 	Role                   string             `json:"role"`
 	AlertsEnabled          bool               `json:"alerts_enabled"`
 	AdministrativelyIgnored bool              `json:"administratively_ignored"`
@@ -196,8 +197,11 @@ type InterfaceInfo struct {
 	AdminStatus    string        `json:"admin_status,omitempty"`
 	OperStatus     string        `json:"oper_status,omitempty"`
 	SpeedBps       *int64        `json:"speed_bps,omitempty"`
+	Duplex         string        `json:"duplex,omitempty"`
 	InOctets       *int64        `json:"in_octets,omitempty"`
 	OutOctets      *int64        `json:"out_octets,omitempty"`
+	InPackets      *int64        `json:"in_packets,omitempty"`
+	OutPackets     *int64        `json:"out_packets,omitempty"`
 	InErrors       *int64        `json:"in_errors,omitempty"`
 	OutErrors      *int64        `json:"out_errors,omitempty"`
 	InDiscards     *int64        `json:"in_discards,omitempty"`

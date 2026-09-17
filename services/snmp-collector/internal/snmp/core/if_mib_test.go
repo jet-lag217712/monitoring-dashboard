@@ -153,3 +153,120 @@ func TestPollInterfacesInventoryAndLastChange(t *testing.T) {
 		t.Fatal("expected counters to be present")
 	}
 }
+
+func TestDuplexStatusName(t *testing.T) {
+	t.Parallel()
+	if DuplexStatusName(2) != "half" || DuplexStatusName(3) != "full" || DuplexStatusName(1) != "unknown" {
+		t.Fatalf("unexpected duplex names")
+	}
+}
+
+func TestPollInterfacesDuplexAndPackets(t *testing.T) {
+	t.Parallel()
+
+	w := &fakeWalker{columns: map[string][]gosnmp.SnmpPDU{
+		OIDIfIndex: {{Name: OIDIfIndex + ".1", Type: gosnmp.Integer, Value: 1}},
+		OIDDot3StatsDuplexStatus: {
+			{Name: OIDDot3StatsDuplexStatus + ".1", Type: gosnmp.Integer, Value: 3},
+		},
+		OIDIfHCInOctets:  {{Name: OIDIfHCInOctets + ".1", Type: gosnmp.Counter64, Value: uint64(10)}},
+		OIDIfHCOutOctets: {{Name: OIDIfHCOutOctets + ".1", Type: gosnmp.Counter64, Value: uint64(20)}},
+		OIDIfHCInUcastPkts: {
+			{Name: OIDIfHCInUcastPkts + ".1", Type: gosnmp.Counter64, Value: uint64(100)},
+		},
+		OIDIfHCOutUcastPkts: {
+			{Name: OIDIfHCOutUcastPkts + ".1", Type: gosnmp.Counter64, Value: uint64(200)},
+		},
+		OIDIfInErrors:  {{Name: OIDIfInErrors + ".1", Type: gosnmp.Counter32, Value: uint32(0)}},
+		OIDIfOutErrors: {{Name: OIDIfOutErrors + ".1", Type: gosnmp.Counter32, Value: uint32(0)}},
+	}}
+
+	readings, err := PollInterfaces(context.Background(), w)
+	if err != nil {
+		t.Fatalf("PollInterfaces: %v", err)
+	}
+	if len(readings) != 1 {
+		t.Fatalf("got %d readings, want 1", len(readings))
+	}
+	got := readings[0]
+	if got.Duplex == nil || *got.Duplex != "full" {
+		t.Fatalf("duplex=%v want full", got.Duplex)
+	}
+	if !got.HasPackets || got.InPackets != 100 || got.OutPackets != 200 {
+		t.Fatalf("packets=%#v", got)
+	}
+}
+
+func TestPollInterfacesPacketFallback32Bit(t *testing.T) {
+	t.Parallel()
+
+	w := &fakeWalker{columns: map[string][]gosnmp.SnmpPDU{
+		OIDIfIndex:       {{Name: OIDIfIndex + ".5", Type: gosnmp.Integer, Value: 5}},
+		OIDIfHCInOctets:  {{Name: OIDIfHCInOctets + ".5", Type: gosnmp.Counter64, Value: uint64(1)}},
+		OIDIfHCOutOctets: {{Name: OIDIfHCOutOctets + ".5", Type: gosnmp.Counter64, Value: uint64(2)}},
+		OIDIfHCInUcastPkts:  {},
+		OIDIfHCOutUcastPkts: {},
+		OIDIfInUcastPkts: {
+			{Name: OIDIfInUcastPkts + ".5", Type: gosnmp.Counter32, Value: uint32(55)},
+		},
+		OIDIfOutUcastPkts: {
+			{Name: OIDIfOutUcastPkts + ".5", Type: gosnmp.Counter32, Value: uint32(66)},
+		},
+		OIDIfInErrors:  {{Name: OIDIfInErrors + ".5", Type: gosnmp.Counter32, Value: uint32(0)}},
+		OIDIfOutErrors: {{Name: OIDIfOutErrors + ".5", Type: gosnmp.Counter32, Value: uint32(0)}},
+	}}
+
+	readings, err := PollInterfaces(context.Background(), w)
+	if err != nil {
+		t.Fatalf("PollInterfaces: %v", err)
+	}
+	if len(readings) != 1 {
+		t.Fatalf("got %d readings, want 1", len(readings))
+	}
+	got := readings[0]
+	if !got.HasPackets || got.InPackets != 55 || got.OutPackets != 66 {
+		t.Fatalf("packet fallback=%#v", got)
+	}
+}
+
+type failingDuplexWalker struct {
+	fakeWalker
+	failDuplex bool
+}
+
+func (f *failingDuplexWalker) Walk(ctx context.Context, rootOID string, walkFn gosnmp.WalkFunc) error {
+	if f.failDuplex && rootOID == OIDDot3StatsDuplexStatus {
+		return context.Canceled
+	}
+	return f.fakeWalker.Walk(ctx, rootOID, walkFn)
+}
+
+func TestPollInterfacesDuplexWalkFailureIsBestEffort(t *testing.T) {
+	t.Parallel()
+
+	base := &fakeWalker{columns: map[string][]gosnmp.SnmpPDU{
+		OIDIfIndex:       {{Name: OIDIfIndex + ".1", Type: gosnmp.Integer, Value: 1}},
+		OIDIfHCInOctets:  {{Name: OIDIfHCInOctets + ".1", Type: gosnmp.Counter64, Value: uint64(10)}},
+		OIDIfHCOutOctets: {{Name: OIDIfHCOutOctets + ".1", Type: gosnmp.Counter64, Value: uint64(20)}},
+		OIDIfHCInUcastPkts: {
+			{Name: OIDIfHCInUcastPkts + ".1", Type: gosnmp.Counter64, Value: uint64(1)},
+		},
+		OIDIfHCOutUcastPkts: {
+			{Name: OIDIfHCOutUcastPkts + ".1", Type: gosnmp.Counter64, Value: uint64(2)},
+		},
+		OIDIfInErrors:  {{Name: OIDIfInErrors + ".1", Type: gosnmp.Counter32, Value: uint32(0)}},
+		OIDIfOutErrors: {{Name: OIDIfOutErrors + ".1", Type: gosnmp.Counter32, Value: uint32(0)}},
+	}}
+	w := &failingDuplexWalker{fakeWalker: *base, failDuplex: true}
+
+	readings, err := PollInterfaces(context.Background(), w)
+	if err != nil {
+		t.Fatalf("PollInterfaces: %v", err)
+	}
+	if len(readings) != 1 {
+		t.Fatalf("got %d readings, want 1", len(readings))
+	}
+	if readings[0].Duplex != nil {
+		t.Fatalf("duplex=%v want nil on walk failure", readings[0].Duplex)
+	}
+}

@@ -85,6 +85,9 @@ type InterfaceTelemetryV2 struct {
 	OutErrors   uint64
 	InDiscards  *uint64
 	OutDiscards *uint64
+	InPackets   *uint64
+	OutPackets  *uint64
+	Duplex      *string
 }
 
 // HealthStateV2 is a validated v2 health state event.
@@ -177,6 +180,7 @@ type interfacePayloadV2 struct {
 		AdminStatus string  `json:"admin_status"`
 		OperStatus  string  `json:"oper_status"`
 		SpeedBps    *int64  `json:"speed_bps"`
+		Duplex      *string `json:"duplex"`
 	} `json:"interface"`
 	Counters struct {
 		InOctets    *uint64 `json:"in_octets"`
@@ -185,6 +189,8 @@ type interfacePayloadV2 struct {
 		OutErrors   *uint64 `json:"out_errors"`
 		InDiscards  *uint64 `json:"in_discards"`
 		OutDiscards *uint64 `json:"out_discards"`
+		InPackets   *uint64 `json:"in_packets"`
+		OutPackets  *uint64 `json:"out_packets"`
 	} `json:"counters"`
 }
 
@@ -510,12 +516,15 @@ func validateInterfaceV2(env EnvelopeV2, payload json.RawMessage) (InterfaceTele
 		AdminStatus: p.Interface.AdminStatus,
 		OperStatus:  p.Interface.OperStatus,
 		SpeedBps:    p.Interface.SpeedBps,
+		Duplex:      p.Interface.Duplex,
 		InOctets:    *p.Counters.InOctets,
 		OutOctets:   *p.Counters.OutOctets,
 		InErrors:    *p.Counters.InErrors,
 		OutErrors:   *p.Counters.OutErrors,
 		InDiscards:  p.Counters.InDiscards,
 		OutDiscards: p.Counters.OutDiscards,
+		InPackets:   p.Counters.InPackets,
+		OutPackets:  p.Counters.OutPackets,
 	}, nil
 }
 

@@ -64,7 +64,7 @@ incompatible changes require a new schema version and rollout decision.
 | `state` | A power component state value; status remains authoritative. |
 | `watts`, `volts`, `amps` | Numeric power-supply readings in the named unit. |
 | `octets` | Interface byte counters. |
-| `count` | Interface errors, discards, or other integer counters. |
+| `count` | Interface errors, discards, unicast packet counters, or other integer counters. |
 
 The collector omits unavailable vendor readings. It never emits fabricated zero
 values to represent an unsupported OID.
@@ -139,7 +139,8 @@ by [`interface-event.schema.json`](../schemas/snmp-collector-v2/interface-event.
       "type": "ethernetCsmacd",
       "admin_status": "up",
       "oper_status": "up",
-      "speed_bps": 1000000000
+      "speed_bps": 1000000000,
+      "duplex": "full"
     },
     "counters": {
       "in_octets": 123,
@@ -147,7 +148,9 @@ by [`interface-event.schema.json`](../schemas/snmp-collector-v2/interface-event.
       "in_errors": 0,
       "out_errors": 0,
       "in_discards": 0,
-      "out_discards": 0
+      "out_discards": 0,
+      "in_packets": 10,
+      "out_packets": 12
     }
   }
 }

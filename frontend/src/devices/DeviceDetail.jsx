@@ -25,10 +25,6 @@ export default function DeviceDetail({
   const selectedInterface = device ? resolveSelectedInterface(device, selectedInterfaceKey) : null
   const statusLabel = DEVICE_STATUS_LABELS[device?.status] ?? 'Unknown'
   const reasonSuffix = device?.status_reason ? ` · ${device.status_reason}` : ''
-  const rootCause =
-    Array.isArray(device?.root_cause_device_ids) && device.root_cause_device_ids.length > 0
-      ? ` · root cause: ${device.root_cause_device_ids.join(', ')}`
-      : ''
 
   return (
     <div className="device-detail-page">
@@ -59,7 +55,6 @@ export default function DeviceDetail({
               <p className="page-sub">
                 {device.hostname ?? '—'} · {deviceIp} · {statusLabel}
                 {reasonSuffix}
-                {rootCause}
               </p>
             </div>
             <DeviceStatusBadge status={device.status} />

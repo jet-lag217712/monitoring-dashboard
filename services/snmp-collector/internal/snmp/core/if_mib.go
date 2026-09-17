@@ -19,16 +19,22 @@ const (
 	OIDIfAdminStatus = "1.3.6.1.2.1.2.2.1.7"
 	OIDIfOperStatus  = "1.3.6.1.2.1.2.2.1.8"
 	OIDIfLastChange  = "1.3.6.1.2.1.2.2.1.9"
+	OIDIfInUcastPkts = "1.3.6.1.2.1.2.2.1.11"
 	OIDIfInErrors    = "1.3.6.1.2.1.2.2.1.14"
+	OIDIfOutUcastPkts = "1.3.6.1.2.1.2.2.1.17"
 	OIDIfOutErrors   = "1.3.6.1.2.1.2.2.1.20"
 	OIDIfName        = "1.3.6.1.2.1.31.1.1.1.1"
 	OIDIfHCInOctets  = "1.3.6.1.2.1.31.1.1.1.6"
+	OIDIfHCInUcastPkts = "1.3.6.1.2.1.31.1.1.1.7"
 	OIDIfHCOutOctets = "1.3.6.1.2.1.31.1.1.1.10"
+	OIDIfHCOutUcastPkts = "1.3.6.1.2.1.31.1.1.1.11"
 	OIDIfHighSpeed   = "1.3.6.1.2.1.31.1.1.1.15"
 	OIDIfAlias       = "1.3.6.1.2.1.31.1.1.1.18"
 	// 32-bit fallbacks when ifHC* counters are unavailable on older devices.
 	OIDIfInOctets  = "1.3.6.1.2.1.2.2.1.10"
 	OIDIfOutOctets = "1.3.6.1.2.1.2.2.1.16"
+	// EtherLike-MIB duplex status (best-effort; may be absent on virtual interfaces).
+	OIDDot3StatsDuplexStatus = "1.3.6.1.2.1.10.7.2.1.19"
 )
 
 // InterfaceReading holds core IF-MIB inventory and counters for one ifIndex.
@@ -43,11 +49,15 @@ type InterfaceReading struct {
 	AdminStatus       string
 	OperStatus        string
 	LastChangeSeconds float64
+	Duplex            *string
 	InOctets          uint64
 	OutOctets         uint64
+	InPackets         uint64
+	OutPackets        uint64
 	InErrors          uint64
 	OutErrors         uint64
 	HasCounters       bool
+	HasPackets        bool
 }
 
 // Walker is the SNMP walk surface used by interface polling.
@@ -56,7 +66,7 @@ type Walker interface {
 }
 
 // InterfacePollWalkBudget is the maximum SNMP walks PollInterfaces performs.
-const InterfacePollWalkBudget = 16
+const InterfacePollWalkBudget = 21
 
 // PollInterfaces walks IF-MIB / ifXTable columns and returns every interface.
 // It prefers 64-bit ifHC* octet counters and falls back to 32-bit counters.
@@ -121,21 +131,30 @@ func PollInterfaces(ctx context.Context, client Walker) ([]InterfaceReading, err
 	if err != nil {
 		return nil, fmt.Errorf("ifOutErrors: %w", err)
 	}
+	duplexStatuses := walkCountersBestEffort(ctx, client, OIDDot3StatsDuplexStatus)
+	hcInPkts, err := walkCounters(ctx, client, OIDIfHCInUcastPkts)
+	if err != nil {
+		return nil, fmt.Errorf("ifHCInUcastPkts: %w", err)
+	}
+	hcOutPkts, err := walkCounters(ctx, client, OIDIfHCOutUcastPkts)
+	if err != nil {
+		return nil, fmt.Errorf("ifHCOutUcastPkts: %w", err)
+	}
 
-	needFallback := false
+	needOctetFallback := false
 	for _, idx := range indexes {
 		if _, ok := hcIn[idx]; !ok {
-			needFallback = true
+			needOctetFallback = true
 			break
 		}
 		if _, ok := hcOut[idx]; !ok {
-			needFallback = true
+			needOctetFallback = true
 			break
 		}
 	}
 
 	var in32, out32 map[int]uint64
-	if needFallback {
+	if needOctetFallback {
 		in32, err = walkCounters(ctx, client, OIDIfInOctets)
 		if err != nil {
 			return nil, fmt.Errorf("ifInOctets: %w", err)
@@ -143,6 +162,30 @@ func PollInterfaces(ctx context.Context, client Walker) ([]InterfaceReading, err
 		out32, err = walkCounters(ctx, client, OIDIfOutOctets)
 		if err != nil {
 			return nil, fmt.Errorf("ifOutOctets: %w", err)
+		}
+	}
+
+	needPacketFallback := false
+	for _, idx := range indexes {
+		if _, ok := hcInPkts[idx]; !ok {
+			needPacketFallback = true
+			break
+		}
+		if _, ok := hcOutPkts[idx]; !ok {
+			needPacketFallback = true
+			break
+		}
+	}
+
+	var inPkts32, outPkts32 map[int]uint64
+	if needPacketFallback {
+		inPkts32, err = walkCounters(ctx, client, OIDIfInUcastPkts)
+		if err != nil {
+			return nil, fmt.Errorf("ifInUcastPkts: %w", err)
+		}
+		outPkts32, err = walkCounters(ctx, client, OIDIfOutUcastPkts)
+		if err != nil {
+			return nil, fmt.Errorf("ifOutUcastPkts: %w", err)
 		}
 	}
 
@@ -157,11 +200,27 @@ func PollInterfaces(ctx context.Context, client Walker) ([]InterfaceReading, err
 			}
 		}
 
+		inPackets, okInPkts := hcInPkts[idx]
+		outPackets, okOutPkts := hcOutPkts[idx]
+		if !okInPkts || !okOutPkts {
+			if inPkts32 != nil && outPkts32 != nil {
+				inPackets, okInPkts = inPkts32[idx]
+				outPackets, okOutPkts = outPkts32[idx]
+			}
+		}
+
 		speed := speeds[idx]
 		if highSpeeds[idx] > 0 {
 			speed = highSpeeds[idx] * 1_000_000
 		}
 		ifType := int(types[idx])
+
+		var duplex *string
+		if status, ok := duplexStatuses[idx]; ok {
+			name := DuplexStatusName(int(status))
+			duplex = &name
+		}
+
 		readings = append(readings, InterfaceReading{
 			IfIndex:           idx,
 			IfDescr:           descrs[idx],
@@ -173,11 +232,15 @@ func PollInterfaces(ctx context.Context, client Walker) ([]InterfaceReading, err
 			AdminStatus:       InterfaceStatusName(int(adminStatuses[idx])),
 			OperStatus:        InterfaceStatusName(int(operStatuses[idx])),
 			LastChangeSeconds: float64(lastChanges[idx]) / 100,
+			Duplex:            duplex,
 			InOctets:          inOctets,
 			OutOctets:         outOctets,
+			InPackets:         inPackets,
+			OutPackets:        outPackets,
 			InErrors:          inErr[idx],
 			OutErrors:         outErr[idx],
 			HasCounters:       okIn && okOut,
+			HasPackets:        okInPkts && okOutPkts,
 		})
 	}
 
@@ -185,6 +248,18 @@ func PollInterfaces(ctx context.Context, client Walker) ([]InterfaceReading, err
 		return readings[i].IfIndex < readings[j].IfIndex
 	})
 	return readings, nil
+}
+
+// DuplexStatusName returns an EtherLike-MIB duplex enum name.
+func DuplexStatusName(status int) string {
+	switch status {
+	case 2:
+		return "half"
+	case 3:
+		return "full"
+	default:
+		return "unknown"
+	}
 }
 
 // InterfaceTypeName returns the canonical config name for an IANA ifType.
@@ -239,6 +314,14 @@ func walkIndexes(ctx context.Context, client Walker, rootOID string) ([]int, err
 	}
 	sort.Ints(indexes)
 	return indexes, nil
+}
+
+func walkCountersBestEffort(ctx context.Context, client Walker, rootOID string) map[int]uint64 {
+	out, err := walkCounters(ctx, client, rootOID)
+	if err != nil {
+		return map[int]uint64{}
+	}
+	return out
 }
 
 func walkCounters(ctx context.Context, client Walker, rootOID string) (map[int]uint64, error) {

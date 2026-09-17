@@ -109,10 +109,12 @@ func (s *Store) PersistInterfaceTelemetry(ctx context.Context, sample transform.
 
 	tag, err := tx.Exec(ctx, `
 		INSERT INTO interface_samples (
-			interface_id, in_octets, out_octets, in_errors, out_errors, in_discards, out_discards, collected_at
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+			interface_id, in_octets, out_octets, in_packets, out_packets,
+			in_errors, out_errors, in_discards, out_discards, collected_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		ON CONFLICT (interface_id, collected_at) DO NOTHING
-	`, ifaceID, sample.InOctets, sample.OutOctets, sample.InErrors, sample.OutErrors, sample.InDiscards, sample.OutDiscards, sample.ObservedAt)
+	`, ifaceID, sample.InOctets, sample.OutOctets, sample.InPackets, sample.OutPackets,
+		sample.InErrors, sample.OutErrors, sample.InDiscards, sample.OutDiscards, sample.ObservedAt)
 	if err != nil {
 		return 0, fmt.Errorf("insert interface_samples: %w", err)
 	}
@@ -377,13 +379,17 @@ func upsertDeviceV2(ctx context.Context, tx pgx.Tx, sample transform.DeviceTelem
 }
 
 func upsertInterfaceV2(ctx context.Context, tx pgx.Tx, sample transform.InterfaceTelemetrySample) (uuid.UUID, error) {
+	var duplex any
+	if sample.Duplex != nil {
+		duplex = *sample.Duplex
+	}
 	var resolved uuid.UUID
 	err := tx.QueryRow(ctx, `
 		INSERT INTO interfaces (
 			id, device_id, if_index, name, description, admin_status, oper_status, speed_bps,
-			if_alias, if_type, last_observed_at
+			duplex, if_alias, if_type, last_observed_at
 		) VALUES (
-			$1, $2, $3, $4, NULLIF($5, ''), $6, $7, $8, NULLIF($5, ''), NULLIF($9, ''), $10
+			$1, $2, $3, $4, NULLIF($5, ''), $6, $7, $8, NULLIF($9, ''), NULLIF($5, ''), NULLIF($10, ''), $11
 		)
 		ON CONFLICT (device_id, if_index) DO UPDATE SET
 			name = CASE WHEN interfaces.last_observed_at < EXCLUDED.last_observed_at THEN EXCLUDED.name ELSE interfaces.name END,
@@ -391,12 +397,13 @@ func upsertInterfaceV2(ctx context.Context, tx pgx.Tx, sample transform.Interfac
 			admin_status = CASE WHEN interfaces.last_observed_at < EXCLUDED.last_observed_at THEN EXCLUDED.admin_status ELSE interfaces.admin_status END,
 			oper_status = CASE WHEN interfaces.last_observed_at < EXCLUDED.last_observed_at THEN EXCLUDED.oper_status ELSE interfaces.oper_status END,
 			speed_bps = CASE WHEN interfaces.last_observed_at < EXCLUDED.last_observed_at THEN EXCLUDED.speed_bps ELSE interfaces.speed_bps END,
+			duplex = CASE WHEN interfaces.last_observed_at < EXCLUDED.last_observed_at THEN EXCLUDED.duplex ELSE interfaces.duplex END,
 			if_alias = CASE WHEN interfaces.last_observed_at < EXCLUDED.last_observed_at THEN EXCLUDED.if_alias ELSE interfaces.if_alias END,
 			if_type = CASE WHEN interfaces.last_observed_at < EXCLUDED.last_observed_at THEN EXCLUDED.if_type ELSE interfaces.if_type END,
 			last_observed_at = GREATEST(interfaces.last_observed_at, EXCLUDED.last_observed_at)
 		RETURNING id
 	`, sample.InterfaceUUID, sample.DeviceUUID, sample.IfIndex, sample.Name, sample.Alias,
-		sample.AdminStatus, sample.OperStatus, sample.SpeedBps, sample.Type, sample.ObservedAt).Scan(&resolved)
+		sample.AdminStatus, sample.OperStatus, sample.SpeedBps, duplex, sample.Type, sample.ObservedAt).Scan(&resolved)
 	if err != nil {
 		return uuid.Nil, fmt.Errorf("upsert interface v2: %w", err)
 	}

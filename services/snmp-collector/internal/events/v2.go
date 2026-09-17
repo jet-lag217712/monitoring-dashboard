@@ -106,9 +106,10 @@ type InterfaceIdentityPayload struct {
 	Name        string `json:"name"`
 	Alias       string `json:"alias,omitempty"`
 	Type        string `json:"type,omitempty"`
-	AdminStatus string `json:"admin_status"`
-	OperStatus  string `json:"oper_status"`
-	SpeedBps    *int64 `json:"speed_bps"`
+	AdminStatus string  `json:"admin_status"`
+	OperStatus  string  `json:"oper_status"`
+	SpeedBps    *int64  `json:"speed_bps"`
+	Duplex      *string `json:"duplex,omitempty"`
 }
 
 // InterfaceCountersPayload holds interface counters.
@@ -119,6 +120,8 @@ type InterfaceCountersPayload struct {
 	OutErrors   uint64  `json:"out_errors"`
 	InDiscards  *uint64 `json:"in_discards,omitempty"`
 	OutDiscards *uint64 `json:"out_discards,omitempty"`
+	InPackets   *uint64 `json:"in_packets,omitempty"`
+	OutPackets  *uint64 `json:"out_packets,omitempty"`
 }
 
 // Topic returns the v2 interface telemetry route.

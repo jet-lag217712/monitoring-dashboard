@@ -7,6 +7,7 @@ import (
 
 	"github.com/equate/ogsd/services/snmp-collector/internal/events"
 	"github.com/equate/ogsd/services/snmp-collector/internal/health"
+	"github.com/equate/ogsd/services/snmp-collector/internal/snmp/core"
 	"github.com/equate/ogsd/services/snmp-collector/internal/snmp/readings"
 	"github.com/google/uuid"
 )
@@ -151,17 +152,29 @@ func InterfaceTelemetry(ctx Context, result readings.DevicePollResult) []events.
 					AdminStatus: iface.Reading.AdminStatus,
 					OperStatus:  iface.Reading.OperStatus,
 					SpeedBps:    speed,
+					Duplex:      iface.Reading.Duplex,
 				},
-				Counters: events.InterfaceCountersPayload{
-					InOctets:  iface.Reading.InOctets,
-					OutOctets: iface.Reading.OutOctets,
-					InErrors:  iface.Reading.InErrors,
-					OutErrors: iface.Reading.OutErrors,
-				},
+				Counters: interfaceCounters(iface.Reading),
 			},
 		})
 	}
 	return out
+}
+
+func interfaceCounters(reading core.InterfaceReading) events.InterfaceCountersPayload {
+	counters := events.InterfaceCountersPayload{
+		InOctets:  reading.InOctets,
+		OutOctets: reading.OutOctets,
+		InErrors:  reading.InErrors,
+		OutErrors: reading.OutErrors,
+	}
+	if reading.HasPackets {
+		inPkts := reading.InPackets
+		outPkts := reading.OutPackets
+		counters.InPackets = &inPkts
+		counters.OutPackets = &outPkts
+	}
+	return counters
 }
 
 // HealthEvent maps a local health.Event to a v2 health MQTT event.

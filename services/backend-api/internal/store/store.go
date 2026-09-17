@@ -117,8 +117,11 @@ type InterfaceRow struct {
 	AdminStatus *string
 	OperStatus  *string
 	SpeedBps    *int64
+	Duplex      *string
 	InOctets    *int64
 	OutOctets   *int64
+	InPackets   *int64
+	OutPackets  *int64
 	InErrors    *int64
 	OutErrors   *int64
 	InDiscards  *int64
@@ -383,15 +386,18 @@ func (s *Store) ListInterfaces(ctx context.Context, deviceID uuid.UUID) ([]Inter
 			i.admin_status,
 			i.oper_status,
 			i.speed_bps,
+			i.duplex,
 			samp.in_octets,
 			samp.out_octets,
+			samp.in_packets,
+			samp.out_packets,
 			samp.in_errors,
 			samp.out_errors,
 			samp.in_discards,
 			samp.out_discards
 		FROM interfaces i
 		LEFT JOIN LATERAL (
-			SELECT in_octets, out_octets, in_errors, out_errors, in_discards, out_discards
+			SELECT in_octets, out_octets, in_packets, out_packets, in_errors, out_errors, in_discards, out_discards
 			FROM interface_samples
 			WHERE interface_id = i.id
 			ORDER BY collected_at DESC
@@ -410,8 +416,9 @@ func (s *Store) ListInterfaces(ctx context.Context, deviceID uuid.UUID) ([]Inter
 		var r InterfaceRow
 		if err := rows.Scan(
 			&r.ID, &r.DeviceID, &r.IfIndex, &r.Name, &r.Description,
-			&r.IfAlias, &r.IfType, &r.AdminStatus, &r.OperStatus, &r.SpeedBps,
-			&r.InOctets, &r.OutOctets, &r.InErrors, &r.OutErrors, &r.InDiscards, &r.OutDiscards,
+			&r.IfAlias, &r.IfType, &r.AdminStatus, &r.OperStatus, &r.SpeedBps, &r.Duplex,
+			&r.InOctets, &r.OutOctets, &r.InPackets, &r.OutPackets,
+			&r.InErrors, &r.OutErrors, &r.InDiscards, &r.OutDiscards,
 		); err != nil {
 			return nil, fmt.Errorf("scan interface: %w", err)
 		}

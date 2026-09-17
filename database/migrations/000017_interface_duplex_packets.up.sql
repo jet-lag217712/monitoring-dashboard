@@ -1,0 +1,6 @@
+ALTER TABLE interfaces
+  ADD COLUMN IF NOT EXISTS duplex VARCHAR(16);
+
+ALTER TABLE interface_samples
+  ADD COLUMN IF NOT EXISTS in_packets BIGINT,
+  ADD COLUMN IF NOT EXISTS out_packets BIGINT;

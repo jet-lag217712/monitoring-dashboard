@@ -50,6 +50,9 @@
                 "speed_bps": {
                   "type": ["integer", "null"],
                   "minimum": 0
+                },
+                "duplex": {
+                  "enum": ["unknown", "half", "full"]
                 }
               },
               "required": [
@@ -85,6 +88,14 @@
                   "minimum": 0
                 },
                 "out_discards": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "in_packets": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "out_packets": {
                   "type": "integer",
                   "minimum": 0
                 }
