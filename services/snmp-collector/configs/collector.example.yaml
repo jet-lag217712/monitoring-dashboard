@@ -29,9 +29,28 @@ discovery:
   probe_burst: 2
 
 publisher:
-  mode: stdout
+  mode: mqtt
   timeout: 10s
   telemetry_version: v2
+
+buffer:
+  path: "./data/buffer.db"
+  max_entries: 50000
+  busy_timeout_ms: 5000
+  batch_size: 50
+  idle_backoff: 500ms
+
+mqtt:
+  broker: "tls://127.0.0.1:8883"
+  client_id: "Testing-Site-1"
+  username: "collector"
+  password_env: "MQTT_PASSWORD"
+  qos: 1
+  tls:
+    ca_file: "../../infrastructure/docker/mqtt-broker/certs/ca.crt"
+  reconnect:
+    initial: 1s
+    max: 60s
 
 devices:
   - id: "dev-001"

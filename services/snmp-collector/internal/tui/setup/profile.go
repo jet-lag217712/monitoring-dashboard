@@ -26,7 +26,7 @@ type ProfileConfig struct {
 // ParseProfile normalizes a profile flag value.
 func ParseProfile(raw string) (Profile, error) {
 	switch strings.TrimSpace(strings.ToLower(raw)) {
-	case "", "appliance", "prod-appliance", "production-appliance":
+	case "", "appliance":
 		return ProfileAppliance, nil
 	default:
 		return "", fmt.Errorf("unknown setup profile %q (use appliance)", raw)

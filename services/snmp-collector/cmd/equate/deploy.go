@@ -6,6 +6,8 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+
+	"github.com/equate/ogsd/services/snmp-collector/internal/tui/setup"
 )
 
 func resolveDeployDir() (string, error) {
@@ -28,19 +30,6 @@ func resolveDeployDir() (string, error) {
 		}
 	}
 	return "", fmt.Errorf("deploy directory not found (set EQUATE_DEPLOY_DIR or /etc/equate/deploy-dir)")
-}
-
-func resolveBootstrapper(deployDir string) (string, error) {
-	candidates := []string{
-		filepath.Join(deployDir, "bootstrapper.sh"),
-		filepath.Join(deployDir, "scripts", "bootstrapper.sh"),
-	}
-	for _, path := range candidates {
-		if _, err := os.Stat(path); err == nil {
-			return path, nil
-		}
-	}
-	return "", fmt.Errorf("bootstrapper not found in %s", deployDir)
 }
 
 func runDockerCompose(deployDir string, args ...string) error {
@@ -71,25 +60,23 @@ func dockerComposeFiles(deployDir string) []string {
 	}
 }
 
+func runSyncDBRoles(args []string) int {
+	if len(args) != 0 {
+		fmt.Fprintln(os.Stderr, "usage: equate sync-db-roles")
+		return 2
+	}
+	deployDir, err := resolveDeployDir()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "sync-db-roles: %v\n", err)
+		return 1
+	}
+	if err := runSyncDBRolePasswords(deployDir); err != nil {
+		fmt.Fprintf(os.Stderr, "sync-db-roles: %v\n", err)
+		return 1
+	}
+	return 0
+}
+
 func runSyncDBRolePasswords(deployDir string) error {
-	const composeEnv = "/run/equate/rendered/compose.env"
-	if _, err := os.Stat(composeEnv); err != nil {
-		return nil
-	}
-	script := filepath.Join(deployDir, "scripts", "sync-db-role-passwords.sh")
-	if _, err := os.Stat(script); err != nil {
-		return fmt.Errorf("sync database role passwords: missing %s", script)
-	}
-	cmd := exec.Command("bash", script)
-	cmd.Dir = deployDir
-	cmd.Env = append(os.Environ(),
-		"EQUATE_RELEASE_DIR="+deployDir,
-		"EQUATE_COMPOSE_ENV="+composeEnv,
-	)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("sync database role passwords: %w", err)
-	}
-	return nil
+	return setup.SyncDBRolePasswords(deployDir)
 }

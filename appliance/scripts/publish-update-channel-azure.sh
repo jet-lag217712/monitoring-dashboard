@@ -58,8 +58,8 @@ if [[ -z "${STORAGE_ACCOUNT}" || -z "${ARCH}" || -z "${VERSION}" ]]; then
   exit 1
 fi
 case "${EDITION}" in
-  standard|noauth) ;;
-  *) echo "--edition must be standard or noauth" >&2; exit 1 ;;
+  standard) ;;
+  *) echo "--edition must be standard" >&2; exit 1 ;;
 esac
 if ! command -v az >/dev/null 2>&1; then
   echo "az CLI is required" >&2

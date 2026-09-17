@@ -116,7 +116,6 @@ body {
 }
 
 .nav-mode-live { color: var(--status-ok); }
-.nav-mode-demo { color: var(--status-caution); }
 .nav-mode-error { color: var(--status-alert); }
 
 .nav-user {
@@ -163,11 +162,6 @@ body {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   padding: 36px 32px;
-}
-
-.sign-in-button-host {
-  margin-top: 24px;
-  min-height: 44px;
 }
 
 .sign-in-status {

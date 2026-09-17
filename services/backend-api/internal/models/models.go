@@ -62,7 +62,7 @@ type SiteLocationUpdate struct {
 	Location string `json:"location"`
 }
 
-// SiteDetailSummary is the detail-view summary (field names match mockData).
+// SiteDetailSummary is the detail-view summary.
 type SiteDetailSummary struct {
 	TotalDevices            int `json:"total_devices"`
 	OnlineCount             int `json:"online_count"`
@@ -237,12 +237,6 @@ type AlertInfo struct {
 	Message      string     `json:"message"`
 	Acknowledged bool       `json:"acknowledged"`
 	CreatedAt    time.Time  `json:"created_at"`
-}
-
-// TestConfig is GET /api/test-config.
-type TestConfig struct {
-	Mode           string `json:"mode"`
-	PollingEnabled bool   `json:"polling_enabled"`
 }
 
 // APIError is the error envelope body.

@@ -1,7 +1,5 @@
 import { useCallback, useDeferredValue, useEffect, useRef, useState } from 'react'
-import { ACTIVE_DEMO } from '../config/demo.js'
-import { DEMO_ENABLED, POLL_INTERVAL_MS } from '../config/api.js'
-import { mockScenarios, mockTestConfig } from '../data/mockData.js'
+import { POLL_INTERVAL_MS } from '../config/api.js'
 import {
   ApiError,
   fetchAlertsFromApi,
@@ -11,16 +9,11 @@ import {
   fetchSearchFromApi,
   fetchSiteDetailFromApi,
   fetchSitesFromApi,
-  fetchTestConfigFromApi,
   updateSiteLocation,
 } from '../services/sitesApi.js'
 import { adaptApiAlerts, adaptDeviceDetail, metricsToSeries } from '../utils/deviceAdapters.js'
 import { buildAlerts, filterSitesBySearch, normalizeSites } from '../utils/siteData.js'
 import { filterDevicesFromSiteDetails, mergeDeviceSearchHits } from '../utils/searchData.js'
-
-function getActiveDemoScenario() {
-  return mockScenarios[ACTIVE_DEMO] ?? mockScenarios['all-healthy']
-}
 
 function emptySiteDetail(siteId) {
   return {
@@ -36,10 +29,7 @@ function resolveCollectorDeviceId(deviceSummary, mapKey) {
 }
 
 export function useNetworkDashboard({ enabled = true, onUnauthorized } = {}) {
-  const activeDemoScenario = getActiveDemoScenario()
-  const initialSites = DEMO_ENABLED ? normalizeSites(activeDemoScenario.sites) : []
-
-  const [sites, setSites] = useState(initialSites)
+  const [sites, setSites] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchDeviceHits, setSearchDeviceHits] = useState([])
@@ -52,8 +42,8 @@ export function useNetworkDashboard({ enabled = true, onUnauthorized } = {}) {
   const [deviceLoading, setDeviceLoading] = useState(false)
   const [deviceError, setDeviceError] = useState(null)
   const [lastUpdated, setLastUpdated] = useState(null)
-  const [alerts, setAlerts] = useState(() => (DEMO_ENABLED ? buildAlerts(initialSites) : []))
-  const [dataMode, setDataMode] = useState(DEMO_ENABLED ? 'demo' : 'live')
+  const [alerts, setAlerts] = useState([])
+  const [dataMode, setDataMode] = useState('live')
   const [loadError, setLoadError] = useState(null)
   const deferredSearchQuery = useDeferredValue(searchQuery)
   const siteDetailRef = useRef(siteDetail)
@@ -73,30 +63,6 @@ export function useNetworkDashboard({ enabled = true, onUnauthorized } = {}) {
       return false
     },
     [onUnauthorized],
-  )
-
-  const applyActiveDemo = useCallback(
-    (siteId = selectedSite) => {
-      if (!DEMO_ENABLED) {
-        setLoadError('Live API unavailable')
-        setDataMode('error')
-        return
-      }
-
-      const scenario = getActiveDemoScenario()
-      const list = normalizeSites(scenario.sites)
-
-      setSites(list)
-      setAlerts(buildAlerts(list))
-      setLastUpdated(new Date().toLocaleTimeString())
-      setDataMode('demo')
-      setLoadError(null)
-
-      if (siteId) {
-        setSiteDetail(scenario.details[siteId] ?? null)
-      }
-    },
-    [selectedSite],
   )
 
   const fetchSites = useCallback(async () => {
@@ -119,9 +85,10 @@ export function useNetworkDashboard({ enabled = true, onUnauthorized } = {}) {
     } catch (err) {
       console.error('Failed to fetch sites:', err)
       if (handleUnauthorized(err)) return
-      applyActiveDemo()
+      setLoadError('Live API unavailable')
+      setDataMode('error')
     }
-  }, [applyActiveDemo, handleUnauthorized])
+  }, [handleUnauthorized])
 
   const fetchSiteDetail = useCallback(
     async siteId => {
@@ -138,15 +105,9 @@ export function useNetworkDashboard({ enabled = true, onUnauthorized } = {}) {
         console.error('Failed to fetch site detail:', err)
         if (handleUnauthorized(err)) return
         if (!isCurrentFetch()) return
-        if (DEMO_ENABLED) {
-          const scenario = getActiveDemoScenario()
-          setSiteDetail(scenario.details[siteId] ?? emptySiteDetail(siteId))
-          setDataMode('demo')
-        } else {
-          setSiteDetail(emptySiteDetail(siteId))
-          setLoadError('Failed to load site detail')
-          setDataMode('error')
-        }
+        setSiteDetail(emptySiteDetail(siteId))
+        setLoadError('Failed to load site detail')
+        setDataMode('error')
       }
     },
     [handleUnauthorized],
@@ -166,14 +127,6 @@ export function useNetworkDashboard({ enabled = true, onUnauthorized } = {}) {
       const isCurrentFetch = () => seq === deviceFetchSeqRef.current
 
       try {
-        if (dataModeRef.current === 'demo' && DEMO_ENABLED) {
-          const scenario = getActiveDemoScenario()
-          const demoDevice = scenario.details[siteId]?.latest?.devices?.[deviceMapKey] ?? null
-          if (!isCurrentFetch()) return
-          setDeviceDetail(demoDevice)
-          return
-        }
-
         const historyStart = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
         const historyEnd = new Date().toISOString()
         const metricOpts = { siteId, start: historyStart, end: historyEnd }
@@ -215,15 +168,9 @@ export function useNetworkDashboard({ enabled = true, onUnauthorized } = {}) {
         console.error('Failed to fetch device detail:', err)
         if (handleUnauthorized(err)) return
         if (!isCurrentFetch()) return
-        if (DEMO_ENABLED) {
-          const scenario = getActiveDemoScenario()
-          setDeviceDetail(scenario.details[siteId]?.latest?.devices?.[deviceMapKey] ?? null)
-          setDataMode('demo')
-        } else {
-          setDeviceDetail(null)
-          setDeviceError(err.message ?? 'Failed to load device')
-          setDataMode('error')
-        }
+        setDeviceDetail(null)
+        setDeviceError(err.message ?? 'Failed to load device')
+        setDataMode('error')
       } finally {
         if (isCurrentFetch()) {
           setDeviceLoading(false)
@@ -233,33 +180,17 @@ export function useNetworkDashboard({ enabled = true, onUnauthorized } = {}) {
     [handleUnauthorized],
   )
 
-  const fetchTestConfig = useCallback(async () => {
-    try {
-      await fetchTestConfigFromApi()
-      setDataMode(prev => (prev === 'error' ? 'live' : prev === 'demo' ? prev : 'live'))
-    } catch (err) {
-      console.error('Failed to fetch test config:', err)
-      if (handleUnauthorized(err)) return
-      void mockTestConfig
-      if (DEMO_ENABLED) {
-        setDataMode('demo')
-      }
-    }
-  }, [handleUnauthorized])
-
   useEffect(() => {
     if (!enabled) return undefined
 
-    fetchTestConfig()
     fetchSites()
 
     const id = setInterval(() => {
-      fetchTestConfig()
       fetchSites()
     }, POLL_INTERVAL_MS)
 
     return () => clearInterval(id)
-  }, [enabled, fetchSites, fetchTestConfig])
+  }, [enabled, fetchSites])
 
   useEffect(() => {
     if (!enabled || !selectedSite) {
@@ -325,18 +256,9 @@ export function useNetworkDashboard({ enabled = true, onUnauthorized } = {}) {
       if (siteDetailRef.current?.site_id) {
         localDetails[siteDetailRef.current.site_id] = siteDetailRef.current
       }
-      if (DEMO_ENABLED || dataModeRef.current === 'demo') {
-        const scenario = getActiveDemoScenario()
-        Object.assign(localDetails, scenario.details ?? {})
-      }
       const localHits = filterDevicesFromSiteDetails(localDetails, needle)
 
       try {
-        if (dataModeRef.current === 'demo' && DEMO_ENABLED) {
-          if (seq !== searchSeqRef.current) return
-          setSearchDeviceHits(localHits)
-          return
-        }
         const apiResult = await fetchSearchFromApi(needle)
         if (seq !== searchSeqRef.current) return
         setSearchDeviceHits(mergeDeviceSearchHits(apiResult.devices, localHits))
@@ -424,17 +346,6 @@ export function useNetworkDashboard({ enabled = true, onUnauthorized } = {}) {
   const handleRenameLocation = useCallback(
     async (siteId, location) => {
       const nextLabel = String(location ?? '').trim()
-
-      if (dataModeRef.current === 'demo' && DEMO_ENABLED) {
-        const display = nextLabel || siteId
-        setSites(prev => {
-          const next = prev.map(site => (site.site_id === siteId ? { ...site, location: display } : site))
-          setAlerts(buildAlerts(next))
-          return next
-        })
-        setSiteDetail(prev => (prev && prev.site_id === siteId ? { ...prev, location: display } : prev))
-        return { site_id: siteId, location: display }
-      }
 
       try {
         const updated = await updateSiteLocation(siteId, nextLabel)

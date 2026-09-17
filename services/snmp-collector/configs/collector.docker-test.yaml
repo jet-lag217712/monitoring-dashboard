@@ -12,8 +12,17 @@ snmp:
   retries: 1
 
 publisher:
-  mode: stdout
+  mode: mqtt
   timeout: 10s
+  telemetry_version: v2
+
+mqtt:
+  broker: "tls://127.0.0.1:8883"
+  username: "collector"
+  password_env: "MQTT_PASSWORD"
+  qos: 1
+  tls:
+    ca_file: "../../infrastructure/docker/mqtt-broker/certs/ca.crt"
 
 devices:
   - id: "dev-001"

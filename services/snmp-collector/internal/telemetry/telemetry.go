@@ -5,31 +5,25 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/equate/ogsd/services/snmp-collector/internal/config"
 	"github.com/equate/ogsd/services/snmp-collector/internal/events"
 	"github.com/equate/ogsd/services/snmp-collector/internal/health"
-	"github.com/equate/ogsd/services/snmp-collector/internal/normalize"
 	"github.com/equate/ogsd/services/snmp-collector/internal/snmp/readings"
 	"github.com/google/uuid"
 )
 
-// PublishMode selects which telemetry families to emit.
+// PublishMode is the collector telemetry family.
 type PublishMode string
 
 const (
-	ModeV1   PublishMode = "v1"
-	ModeV2   PublishMode = "v2"
-	ModeBoth PublishMode = "both"
+	ModeV2 PublishMode = "v2"
 )
 
 // ParsePublishMode validates publisher.telemetry_version.
 func ParsePublishMode(raw string) (PublishMode, error) {
-	switch PublishMode(raw) {
-	case ModeV1, ModeV2, ModeBoth:
-		return PublishMode(raw), nil
-	default:
-		return "", fmt.Errorf("publisher.telemetry_version must be \"v1\", \"v2\", or \"both\"")
+	if PublishMode(raw) == ModeV2 {
+		return ModeV2, nil
 	}
+	return "", fmt.Errorf("publisher.telemetry_version must be \"v2\"")
 }
 
 // Context carries envelope identity shared by all v2 events for a poll/publish.
@@ -40,16 +34,10 @@ type Context struct {
 	EmittedAt      time.Time
 }
 
-// DeviceEvents builds device/interface events according to the publish mode.
-func DeviceEvents(mode PublishMode, ctx Context, result readings.DevicePollResult) []events.Event {
-	var out []events.Event
-	if mode == ModeV1 || mode == ModeBoth {
-		out = append(out, normalize.ToEvents(result)...)
-	}
-	if mode == ModeV2 || mode == ModeBoth {
-		out = append(out, DeviceTelemetry(ctx, result))
-		out = append(out, InterfaceTelemetry(ctx, result)...)
-	}
+// DeviceEvents builds v2 device and interface telemetry events.
+func DeviceEvents(ctx Context, result readings.DevicePollResult) []events.Event {
+	out := []events.Event{DeviceTelemetry(ctx, result)}
+	out = append(out, InterfaceTelemetry(ctx, result)...)
 	return out
 }
 
@@ -233,11 +221,8 @@ func HealthEvent(ctx Context, siteID string, ev health.Event) events.HealthState
 	}
 }
 
-// HealthEvents maps a batch of local health events.
-func HealthEvents(mode PublishMode, ctx Context, siteID string, evs []health.Event) []events.Event {
-	if mode != ModeV2 && mode != ModeBoth {
-		return nil
-	}
+// HealthEvents maps a batch of local health events to v2 envelopes.
+func HealthEvents(ctx Context, siteID string, evs []health.Event) []events.Event {
 	out := make([]events.Event, 0, len(evs))
 	for _, ev := range evs {
 		out = append(out, HealthEvent(ctx, siteID, ev))
@@ -302,23 +287,6 @@ func Heartbeat(ctx Context, in HeartbeatInput) events.HeartbeatEvent {
 			GoroutineCount:   in.GoroutineCount,
 		},
 	}
-}
-
-// ShouldPublishHeartbeat reports whether heartbeats are enabled for the mode.
-func ShouldPublishHeartbeat(mode PublishMode) bool {
-	return mode == ModeV2 || mode == ModeBoth
-}
-
-// ModeFromConfig reads publisher.telemetry_version from config.
-func ModeFromConfig(cfg *config.Config) PublishMode {
-	if cfg == nil {
-		return ModeBoth
-	}
-	mode, err := ParsePublishMode(cfg.Publisher.TelemetryVersion)
-	if err != nil {
-		return ModeBoth
-	}
-	return mode
 }
 
 func capabilities(c readings.Capability) []string {

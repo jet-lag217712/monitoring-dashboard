@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"os"
-	"os/exec"
 	"strings"
 
 	"github.com/equate/ogsd/services/snmp-collector/internal/tui/setup"
@@ -51,34 +50,41 @@ func usersUsage() {
 }
 
 func runUsersList() int {
-	helper, err := resolveManageUsersHelper()
+	out, err := setup.ListApplianceUsers()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "users: %v\n", err)
 		return 1
 	}
-	return runManageUsers(helper, "list")
+	fmt.Fprint(os.Stdout, out)
+	return 0
 }
 
 func runUsersCreate(args []string) int {
-	if len(args) != 1 {
+	if len(args) < 1 || len(args) > 2 {
 		fmt.Fprintln(os.Stderr, "usage: equate users create <username>")
 		return 2
 	}
-	password, confirm, err := promptPasswordPair("new password: ", "confirm password: ")
-	if err != nil {
+	password := ""
+	if len(args) == 2 {
+		password = args[1]
+	} else {
+		first, confirm, err := promptPasswordPair("new password: ", "confirm password: ")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "users: %v\n", err)
+			return 1
+		}
+		if first != confirm {
+			fmt.Fprintln(os.Stderr, "users: password confirmation does not match")
+			return 1
+		}
+		password = first
+	}
+	if err := setup.CreateApplianceUser(args[0], password); err != nil {
 		fmt.Fprintf(os.Stderr, "users: %v\n", err)
 		return 1
 	}
-	if password != confirm {
-		fmt.Fprintln(os.Stderr, "users: password confirmation does not match")
-		return 1
-	}
-	helper, err := resolveManageUsersHelper()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "users: %v\n", err)
-		return 1
-	}
-	return runManageUsers(helper, "create", args[0], password)
+	fmt.Fprintf(os.Stdout, "created %s\n", args[0])
+	return 0
 }
 
 func runUsersDelete(args []string) int {
@@ -95,12 +101,12 @@ func runUsersDelete(args []string) int {
 		fmt.Fprintln(os.Stderr, "users: confirmation required (DELETE)")
 		return 1
 	}
-	helper, err := resolveManageUsersHelper()
-	if err != nil {
+	if err := setup.DeleteApplianceUser(args[0]); err != nil {
 		fmt.Fprintf(os.Stderr, "users: %v\n", err)
 		return 1
 	}
-	return runManageUsers(helper, "delete", args[0])
+	fmt.Fprintf(os.Stdout, "deleted %s\n", args[0])
+	return 0
 }
 
 func runUsersDisable(args []string) int {
@@ -108,12 +114,12 @@ func runUsersDisable(args []string) int {
 		fmt.Fprintln(os.Stderr, "usage: equate users disable <username>")
 		return 2
 	}
-	helper, err := resolveManageUsersHelper()
-	if err != nil {
+	if err := setup.DisableApplianceUser(args[0]); err != nil {
 		fmt.Fprintf(os.Stderr, "users: %v\n", err)
 		return 1
 	}
-	return runManageUsers(helper, "disable", args[0])
+	fmt.Fprintf(os.Stdout, "disabled %s\n", args[0])
+	return 0
 }
 
 func runUsersEnable(args []string) int {
@@ -121,55 +127,39 @@ func runUsersEnable(args []string) int {
 		fmt.Fprintln(os.Stderr, "usage: equate users enable <username>")
 		return 2
 	}
-	helper, err := resolveManageUsersHelper()
-	if err != nil {
+	if err := setup.EnableApplianceUser(args[0]); err != nil {
 		fmt.Fprintf(os.Stderr, "users: %v\n", err)
 		return 1
 	}
-	return runManageUsers(helper, "enable", args[0])
+	fmt.Fprintf(os.Stdout, "enabled %s\n", args[0])
+	return 0
 }
 
 func runUsersResetPassword(args []string) int {
-	if len(args) != 1 {
+	if len(args) < 1 || len(args) > 2 {
 		fmt.Fprintln(os.Stderr, "usage: equate users reset-password <username>")
 		return 2
 	}
-	password, confirm, err := promptPasswordPair("new password: ", "confirm password: ")
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "users: %v\n", err)
-		return 1
-	}
-	if password != confirm {
-		fmt.Fprintln(os.Stderr, "users: password confirmation does not match")
-		return 1
-	}
-	helper, err := resolveManageUsersHelper()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "users: %v\n", err)
-		return 1
-	}
-	return runManageUsers(helper, "reset-password", args[0], password)
-}
-
-func resolveManageUsersHelper() (string, error) {
-	deployDir, err := resolveDeployDir()
-	if err != nil {
-		return "", err
-	}
-	return setup.ResolvePamHelperPath(deployDir)
-}
-
-func runManageUsers(helper string, args ...string) int {
-	cmd := exec.Command(helper, args...)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		if exit, ok := err.(*exec.ExitError); ok {
-			return exit.ExitCode()
+	password := ""
+	if len(args) == 2 {
+		password = args[1]
+	} else {
+		first, confirm, err := promptPasswordPair("new password: ", "confirm password: ")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "users: %v\n", err)
+			return 1
 		}
+		if first != confirm {
+			fmt.Fprintln(os.Stderr, "users: password confirmation does not match")
+			return 1
+		}
+		password = first
+	}
+	if err := setup.ResetApplianceUserPassword(args[0], password); err != nil {
 		fmt.Fprintf(os.Stderr, "users: %v\n", err)
 		return 1
 	}
+	fmt.Fprintf(os.Stdout, "reset password for %s\n", args[0])
 	return 0
 }
 

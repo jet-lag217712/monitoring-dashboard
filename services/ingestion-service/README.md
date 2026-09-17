@@ -42,7 +42,7 @@ go run ./cmd/ingestion -config configs/ingestion.example.yaml
 ```
 
 Full-stack MQTT → API checks run on a configured Equate-Appliance VM with
-[`remote-server/smoke_mqtt_v2_to_api.sh`](../../remote-server/smoke_mqtt_v2_to_api.sh).
+`make lab-smoke`.
 
 The default administration listener is `:9091` and exposes only liveness and
 metrics. It is not published by the production appliance.

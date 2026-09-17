@@ -2,11 +2,8 @@
 
 ## Status and ownership
 
-This document defines the v2 telemetry contract described by the [SNMP
-Collector v2 roadmap](../../.ai/roadmap/snmp-collector-v2.md). The machine-
-readable source is [`docs/schemas/snmp-collector-v2/`](../schemas/snmp-collector-v2/).
-The Phase 0 ownership and transition decision is recorded in
-[`collector-1.md`](../../.ai/decisions/collector-1.md).
+This document defines the v2 telemetry contract. The machine-readable source
+is [`docs/schemas/snmp-collector-v2/`](../schemas/snmp-collector-v2/).
 
 The SNMP Collector owns polling-path evidence and local health evaluation.
 Ingestion owns validation, deduplication, persistence, and MQTT ACK decisions.
@@ -15,7 +12,7 @@ outbound delivery mechanism.
 
 ## Routes and compatibility
 
-**Production contract is v2 only** ([`collector-7.md`](../../.ai/decisions/collector-7.md)).
+**Production contract is v2 only.**
 Deployment profiles publish and subscribe to versioned v2 routes:
 
 ```text
@@ -25,19 +22,8 @@ site/{site_id}/device/{device_id}/telemetry/v2/health
 site/{site_id}/collector/{collector_id}/telemetry/v2/heartbeat
 ```
 
-Legacy v1 routes are deprecated and unsupported for deployment:
-
-```text
-site/{site_id}/device/{device_id}/metric/device
-site/{site_id}/device/{device_id}/metric/interface
-```
-
-Ingestion and collector code may still accept or emit v1 when explicitly
-configured (`publisher.telemetry_version: v1` or `both`) for emergency/lab
-use only. Route identifiers remain authoritative: ingestion cross-checks them
-against envelope identifiers and rejects mismatch, malformed IDs, unknown
-schema versions, unsupported units, invalid transitions, stale timestamps, and
-unknown event types.
+Legacy v1 routes are removed from collector and ingestion code. Historical
+ADRs that mention dual-publish remain as history.
 
 ## Formal event envelope
 
@@ -254,13 +240,12 @@ acknowledged so QoS 1 redelivery occurs. V2 uses `event_id` deduplication while
 retaining natural sample keys: device metrics use device, metric type, and
 observation time; interface samples use interface and observation time.
 
-Production deployments use v2-only publishing and ingestion topics
-([`collector-7.md`](../../.ai/decisions/collector-7.md)). The earlier Phase 4
-dual-publish migration window is closed because no production workload ever
-depended on v1 routes. Emergency dual-publish remains a documented override,
-not a deployment default. High-volume time-series and history are retained for
-30 days by default via the ingestion retention job
-([`database-1.md`](../../.ai/decisions/database-1.md)). Time-based indexes are
+Production deployments use v2-only publishing and ingestion topics.
+The earlier Phase 4 dual-publish migration window is closed because no
+production workload ever depended on v1 routes. Emergency dual-publish remains
+a documented override, not a deployment default. High-volume time-series and
+history are retained for 30 days by default via the ingestion retention job
+(see [database.md](database.md)). Time-based indexes are
 required; partitioning or archival may be added later without changing the
 event contract.
 

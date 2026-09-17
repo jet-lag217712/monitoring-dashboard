@@ -12,7 +12,7 @@ SNMP devices → collectors → local MQTT/TLS → ingestion → PostgreSQL
 ```
 
 Develop and release from the repository Makefile. Operators on the VM use the
-`equate` CLI. See [appliance-6](../.ai/decisions/appliance-6.md).
+`equate` CLI.
 
 ## Which directory to use
 
@@ -37,6 +37,7 @@ On the Equate-Appliance VM:
 
 ```bash
 sudo equate configure
+sudo equate restore   # after power loss or reboot; not a substitute for first boot
 make appliance-verify
 ```
 
@@ -75,4 +76,5 @@ Only the frontend ports are customer-facing:
 4. Complete first boot in the setup TUI.
 5. Configure at least two sites, review discovery candidates, and confirm
    telemetry in the local dashboard.
-6. Reboot, run the verifier, and test rollback/restore before handoff.
+6. Reboot, run `sudo equate restore` if `/run/equate` is empty, run the
+   verifier, and test rollback/restore before handoff.

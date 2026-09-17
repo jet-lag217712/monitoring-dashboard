@@ -1,8 +1,7 @@
 # Equate Appliance OVA Release Runbook
 
 **Status:** Engineering runbook  
-**Audience:** Release engineering, infrastructure engineers  
-**Authority:** [`.ai/project-context/appliance.md`](../../.ai/project-context/appliance.md), [`appliance-1`](../../.ai/decisions/appliance-1.md)
+**Audience:** Release engineering, infrastructure engineers
 
 The supported artifact is a **full-stack on-premises appliance**: UI/nginx, Backend API, PostgreSQL,
 Mosquitto, Ingestion, and one generated collector container per configured site
@@ -66,9 +65,8 @@ make appliance-bundle ARCH=arm64 VERSION=<version>
 make appliance-stage HOST=<vm-ip> USER=root ARCH=arm64 VERSION=<version>
 ```
 
-`stage-release.sh` copies the bundle plus `configure-vm.sh`,
-`prepare-ova.sh`, `verify-appliance.sh`, and `verify-ova-import.sh`.
-`configure-vm.sh` installs the verifiers to `/usr/local/lib/equate/`.
+`make appliance-stage` copies the bundle plus the guest installer and verifiers.
+`make appliance-configure` installs the verifiers to `/usr/local/lib/equate/`.
 
 Do not copy customer configuration, SNMP communities, or operator credentials
 into the build VM. Internal database, MQTT, machine, and TLS credentials are
@@ -84,16 +82,14 @@ post-install validation.
 
 ```bash
 ssh root@<vm-ip>
-cd /root/equate-staging
-tar -xzf Equate-Appliance-<version>-arm64.tar.gz
-./configure-vm.sh --bundle ./release --version <version>
+make appliance-configure BUNDLE=/tmp/equate-staging/bundle VERSION=<version>
 ```
 
-On success, `appliance/scripts/verify-appliance.sh` runs automatically. Re-run
+On success, `make appliance-verify` runs automatically from the installer. Re-run
 it after any manual changes:
 
 ```bash
-/usr/local/lib/equate/verify-appliance.sh
+make appliance-verify
 ```
 
 ## 4. First-boot TUI and acceptance smoke test
@@ -119,7 +115,7 @@ finalization:
 Run the post-install verifier after the stack is configured:
 
 ```bash
-/usr/local/lib/equate/verify-appliance.sh
+make appliance-verify
 ```
 
 ## 5. Finalize for OVA export
@@ -131,7 +127,7 @@ identity, SSH host keys, DHCP leases, logs, and shell history, and powers off.
 Finalization **fails closed** if clone-specific or sensitive material remains.
 
 ```bash
-./prepare-ova.sh
+make appliance-prepare-ova
 ```
 
 Expected removals include `/root/equate-staging`, build SSH keys, populated
@@ -141,7 +137,7 @@ operator-created PAM accounts. Only immutable release content under
 
 ## 6. Manual OVA export in VMware Fusion
 
-After `prepare-ova.sh` completes, power off the VM:
+After `make appliance-prepare-ova` completes, power off the VM:
 
 1. Confirm the VM has **no snapshots**.
 2. In Fusion: **File → Export to OVF/OVA**.
@@ -165,7 +161,7 @@ fresh VM name and disk.
 ### Artifact checks (build host)
 
 ```bash
-appliance/scripts/verify-ova-import.sh --artifact Equate-Appliance-<version>-arm64.ova
+make appliance-verify-ova ARTIFACT=Equate-Appliance-<version>-arm64.ova
 ```
 
 ### First-boot checks (re-imported VM)
@@ -174,14 +170,14 @@ Power on the imported VM and run from the guest (or over SSH once the initial
 administrator exists):
 
 ```bash
-/usr/local/lib/equate/verify-ova-import.sh
+make appliance-verify-ova
 ```
 
 After completing the first-boot TUI and site configuration:
 
 ```bash
-/usr/local/lib/equate/verify-ova-import.sh --configured
-/usr/local/lib/equate/verify-appliance.sh
+make appliance-verify-ova CONFIGURED=1
+make appliance-verify
 ```
 
 ### Re-import checklist
@@ -226,7 +222,6 @@ After ARM64 Fusion acceptance:
 
 ## Related documentation
 
-- Appliance architecture: [`.ai/project-context/appliance.md`](../../.ai/project-context/appliance.md)
 - Production stack: [`deployments/production/appliance/`](../../deployments/production/appliance/)
-- Post-install verifier: [`appliance/scripts/verify-appliance.sh`](../../appliance/scripts/verify-appliance.sh)
-- Re-import verifier: [`appliance/scripts/verify-ova-import.sh`](../../appliance/scripts/verify-ova-import.sh)
+- Post-install verifier: `make appliance-verify`
+- Re-import verifier: `make appliance-verify-ova` (`CONFIGURED=1` after first boot)

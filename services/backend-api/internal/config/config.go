@@ -26,22 +26,13 @@ type APIConfig struct {
 
 // Supported authentication modes.
 const (
-	AuthModeDisabled       = "disabled"
-	AuthModeGoogle         = "google"
 	AuthModeApplianceLocal = "appliance_local"
 )
 
 // AuthConfig controls authentication for the public API.
 type AuthConfig struct {
-	// Mode is one of disabled, google, or appliance_local. When omitted, the
-	// legacy enabled field selects google (true) or disabled (false).
+	// Mode must be appliance_local.
 	Mode string `yaml:"mode"`
-	// Enabled is retained for compatibility with existing configurations.
-	Enabled bool `yaml:"enabled"`
-	// GoogleClientID is the OAuth Web client ID (aud claim).
-	GoogleClientID string `yaml:"google_client_id"`
-	// GoogleClientIDEnv optionally loads the client ID from an environment variable.
-	GoogleClientIDEnv string `yaml:"google_client_id_env"`
 	// BrokerSocket is the host authentication broker Unix socket.
 	BrokerSocket string `yaml:"broker_socket"`
 	// BrokerTimeout bounds each broker request.
@@ -110,11 +101,8 @@ func (c *Config) applyDefaults() {
 	if c.OnlineThreshold == 0 {
 		c.OnlineThreshold = 5 * time.Minute
 	}
-	if c.Auth.GoogleClientIDEnv == "" {
-		c.Auth.GoogleClientIDEnv = "GOOGLE_CLIENT_ID"
-	}
-	if strings.TrimSpace(c.Auth.GoogleClientID) == "" {
-		c.Auth.GoogleClientID = strings.TrimSpace(os.Getenv(c.Auth.GoogleClientIDEnv))
+	if strings.TrimSpace(c.Auth.Mode) == "" {
+		c.Auth.Mode = AuthModeApplianceLocal
 	}
 	if strings.TrimSpace(c.Auth.BrokerSocket) == "" {
 		c.Auth.BrokerSocket = "/run/equate/auth.sock"
@@ -141,20 +129,7 @@ func (c *Config) AuthMode() string {
 	if mode := strings.TrimSpace(c.Auth.Mode); mode != "" {
 		return mode
 	}
-	if c.Auth.Enabled {
-		return AuthModeGoogle
-	}
-	return AuthModeDisabled
-}
-
-// AuthEnabled reports whether API authentication is active.
-func (c *Config) AuthEnabled() bool {
-	return c.AuthMode() != AuthModeDisabled
-}
-
-// GoogleClientID returns the configured OAuth client ID.
-func (c *Config) GoogleClientID() string {
-	return strings.TrimSpace(c.Auth.GoogleClientID)
+	return AuthModeApplianceLocal
 }
 
 // DatabaseURL returns the PostgreSQL URL from the configured environment variable.
@@ -204,33 +179,26 @@ func (c *Config) Validate() error {
 	if c.OnlineThreshold <= 0 {
 		return fmt.Errorf("online_threshold must be positive")
 	}
-	switch c.AuthMode() {
-	case AuthModeDisabled:
-	case AuthModeGoogle:
-		if c.GoogleClientID() == "" {
-			return fmt.Errorf("auth.google_client_id or %s is required when auth.mode is google", c.Auth.GoogleClientIDEnv)
-		}
-	case AuthModeApplianceLocal:
-		if !strings.HasPrefix(c.Auth.BrokerSocket, "/") {
-			return fmt.Errorf("auth.broker_socket must be an absolute path")
-		}
-		if c.Auth.BrokerTimeout <= 0 {
-			return fmt.Errorf("auth.broker_timeout must be positive")
-		}
-		if c.Auth.SessionTTL <= 0 {
-			return fmt.Errorf("auth.session_ttl must be positive")
-		}
-		if c.Auth.LoginRateLimit <= 0 {
-			return fmt.Errorf("auth.login_rate_limit must be positive")
-		}
-		if c.Auth.LoginRateWindow <= 0 {
-			return fmt.Errorf("auth.login_rate_window must be positive")
-		}
-		if c.Auth.LoginRateEntries <= 0 {
-			return fmt.Errorf("auth.login_rate_entries must be positive")
-		}
-	default:
-		return fmt.Errorf("auth.mode must be one of disabled, google, or appliance_local")
+	if c.AuthMode() != AuthModeApplianceLocal {
+		return fmt.Errorf("auth.mode must be %s", AuthModeApplianceLocal)
+	}
+	if !strings.HasPrefix(c.Auth.BrokerSocket, "/") {
+		return fmt.Errorf("auth.broker_socket must be an absolute path")
+	}
+	if c.Auth.BrokerTimeout <= 0 {
+		return fmt.Errorf("auth.broker_timeout must be positive")
+	}
+	if c.Auth.SessionTTL <= 0 {
+		return fmt.Errorf("auth.session_ttl must be positive")
+	}
+	if c.Auth.LoginRateLimit <= 0 {
+		return fmt.Errorf("auth.login_rate_limit must be positive")
+	}
+	if c.Auth.LoginRateWindow <= 0 {
+		return fmt.Errorf("auth.login_rate_window must be positive")
+	}
+	if c.Auth.LoginRateEntries <= 0 {
+		return fmt.Errorf("auth.login_rate_entries must be positive")
 	}
 	return nil
 }

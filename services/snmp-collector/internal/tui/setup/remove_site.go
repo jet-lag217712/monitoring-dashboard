@@ -7,7 +7,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// equateSiteNamespace matches deployments/production/appliance/scripts/sync-site-topology.sh.
+// equateSiteNamespace matches ingestion SiteUUID (uuid5 of DNS + "equate-ogsd").
 var equateSiteNamespace = uuid.NewSHA1(uuid.NameSpaceDNS, []byte("equate-ogsd"))
 
 // SiteUUID returns the deterministic Postgres sites.id for a site_id string.

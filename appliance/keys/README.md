@@ -7,7 +7,7 @@
 Generate a new pair:
 
 ```bash
-./appliance/scripts/generate-update-keys.sh --out-dir /secure/equate-keys
+make appliance-generate-keys KEYS_DIR=/secure/equate-keys
 ```
 
 Commit only the `.pub` file (and update `EmbeddedPublicKeyHex`). Store the

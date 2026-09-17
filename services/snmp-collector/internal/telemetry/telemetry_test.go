@@ -13,7 +13,7 @@ import (
 	"github.com/equate/ogsd/services/snmp-collector/internal/telemetry"
 )
 
-func TestDeviceEvents_ModeMatrix(t *testing.T) {
+func TestDeviceEvents_EmitsV2(t *testing.T) {
 	result := readings.NewDevicePollResult("site-001", "dev-001", "10.0.0.1", time.Now().UTC(), core.DeviceIdentity{
 		SysObjectID:   "1.2.3",
 		SysName:       "dev-001",
@@ -37,17 +37,7 @@ func TestDeviceEvents_ModeMatrix(t *testing.T) {
 		EmittedAt:      time.Now().UTC(),
 	}
 
-	v1 := telemetry.DeviceEvents(telemetry.ModeV1, ctx, result)
-	if len(v1) != 2 {
-		t.Fatalf("v1 events=%d want 2", len(v1))
-	}
-	for _, ev := range v1 {
-		if strings.Contains(ev.Topic(), "telemetry/v2") {
-			t.Fatalf("v1 mode emitted v2 topic %s", ev.Topic())
-		}
-	}
-
-	v2 := telemetry.DeviceEvents(telemetry.ModeV2, ctx, result)
+	v2 := telemetry.DeviceEvents(ctx, result)
 	if len(v2) != 2 {
 		t.Fatalf("v2 events=%d want 2", len(v2))
 	}
@@ -55,11 +45,6 @@ func TestDeviceEvents_ModeMatrix(t *testing.T) {
 		if !strings.Contains(ev.Topic(), "telemetry/v2") {
 			t.Fatalf("v2 mode emitted non-v2 topic %s", ev.Topic())
 		}
-	}
-
-	both := telemetry.DeviceEvents(telemetry.ModeBoth, ctx, result)
-	if len(both) != 4 {
-		t.Fatalf("both events=%d want 4", len(both))
 	}
 }
 
@@ -170,10 +155,14 @@ func TestHeartbeat_DepthBeforeSelf(t *testing.T) {
 	}
 }
 
-func TestHealthEvents_SkippedForV1(t *testing.T) {
-	evs := telemetry.HealthEvents(telemetry.ModeV1, telemetry.Context{}, "site", []health.Event{{DeviceID: "d1"}})
-	if len(evs) != 0 {
-		t.Fatalf("v1 should skip health publish, got %d", len(evs))
+func TestHealthEvents_PublishesV2(t *testing.T) {
+	evs := telemetry.HealthEvents(telemetry.Context{
+		SiteID:      "site",
+		CollectorID: "collector-1",
+		EmittedAt:   time.Now().UTC(),
+	}, "site", []health.Event{{DeviceID: "d1", ObservedAt: time.Now().UTC()}})
+	if len(evs) != 1 {
+		t.Fatalf("health events=%d want 1", len(evs))
 	}
 }
 

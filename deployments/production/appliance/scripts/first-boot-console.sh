@@ -24,9 +24,5 @@ if command -v equate >/dev/null 2>&1; then
   exec equate configure
 fi
 
-if [[ -x "${DEPLOY_DIR}/bootstrapper.sh" ]]; then
-  exec "${DEPLOY_DIR}/bootstrapper.sh"
-fi
-
-echo "equate CLI and bootstrapper.sh not found under ${DEPLOY_DIR}" >&2
+echo "equate CLI not found on PATH; install the appliance release first." >&2
 exit 1

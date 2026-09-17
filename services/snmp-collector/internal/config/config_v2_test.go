@@ -19,7 +19,7 @@ func writeFile(t *testing.T, path, body string, mode os.FileMode) string {
 }
 
 func configWithDevices(devices string) string {
-	return "site_id: site-001\ncollector:\n  id: collector-001\ndevices:\n" + devices
+	return "site_id: site-001\ncollector:\n  id: collector-001\npublisher:\n  mode: mqtt\nmqtt:\n  broker: tls://127.0.0.1:8883\n  username: collector\n  password_env: MQTT_PASSWORD\n  tls:\n    ca_file: /tmp/ca.crt\ndevices:\n" + devices
 }
 
 func TestStrictCommunityReferenceAndSecretFreeConfig(t *testing.T) {
@@ -45,7 +45,7 @@ func TestManagedInventoryStaticPrecedence(t *testing.T) {
 	root := t.TempDir()
 	configPath := filepath.Join(root, "collector.yaml")
 	managedPath := filepath.Join(root, "managed.yaml")
-	writeFile(t, configPath, "site_id: site-001\ncollector:\n  id: collector-001\ninventory:\n  managed_path: managed.yaml\ndevices:\n  - id: static-device\n    host: 127.0.0.1\n    community_env: SNMP_COMMUNITY_STATIC\n", 0o600)
+	writeFile(t, configPath, "site_id: site-001\ncollector:\n  id: collector-001\npublisher:\n  mode: mqtt\nmqtt:\n  broker: tls://127.0.0.1:8883\n  username: collector\n  password_env: MQTT_PASSWORD\n  tls:\n    ca_file: /tmp/ca.crt\ninventory:\n  managed_path: managed.yaml\ndevices:\n  - id: static-device\n    host: 127.0.0.1\n    community_env: SNMP_COMMUNITY_STATIC\n", 0o600)
 	writeFile(t, managedPath, "devices:\n  - id: static-device\n    host: 127.0.0.2\n    community_env: SNMP_COMMUNITY_MANAGED\n  - id: managed-device\n    host: 127.0.0.3\n    community_env: SNMP_COMMUNITY_MANAGED_2\n", 0o600)
 
 	cfg, err := LoadForValidation(configPath)
@@ -63,7 +63,7 @@ func TestManagedInventoryStaticPrecedence(t *testing.T) {
 func TestManagedOverlayAppliesAllowedFieldsOnly(t *testing.T) {
 	root := t.TempDir()
 	configPath := filepath.Join(root, "collector.yaml")
-	writeFile(t, configPath, "site_id: site-001\ncollector:\n  id: collector-001\nhealth:\n  temperature_warning_c: 65\ndiscovery:\n  allowed_cidrs: [\"192.0.2.0/30\"]\n  community_env: SNMP_DISCOVERY_COMMUNITY\n  max_targets: 4\n  timeout: 2s\n  retries: 0\n  max_workers: 4\n  max_probes_per_second: 5\n  probe_burst: 2\ninventory:\n  managed_path: managed.yaml\ndevices:\n  - id: static-device\n    host: 127.0.0.1\n    community_env: SNMP_COMMUNITY_STATIC\n", 0o600)
+	writeFile(t, configPath, "site_id: site-001\ncollector:\n  id: collector-001\npublisher:\n  mode: mqtt\nmqtt:\n  broker: tls://127.0.0.1:8883\n  username: collector\n  password_env: MQTT_PASSWORD\n  tls:\n    ca_file: /tmp/ca.crt\nhealth:\n  temperature_warning_c: 65\ndiscovery:\n  allowed_cidrs: [\"192.0.2.0/30\"]\n  community_env: SNMP_DISCOVERY_COMMUNITY\n  max_targets: 4\n  timeout: 2s\n  retries: 0\n  max_workers: 4\n  max_probes_per_second: 5\n  probe_burst: 2\ninventory:\n  managed_path: managed.yaml\ndevices:\n  - id: static-device\n    host: 127.0.0.1\n    community_env: SNMP_COMMUNITY_STATIC\n", 0o600)
 	writeFile(t, filepath.Join(root, "managed.yaml"), "health:\n  temperature_warning_c: 70\ndiscovery:\n  max_probes_per_second: 3\n  probe_burst: 1\ndevices:\n  - id: static-device\n    temperature_warning_c: 72\n    upstream_device_ids: []\n    interface_filters:\n      exclude_name_regex: [\"^Lo\"]\n", 0o600)
 
 	cfg, err := LoadForValidation(configPath)
@@ -90,7 +90,7 @@ func TestManagedOverlayAppliesAllowedFieldsOnly(t *testing.T) {
 func TestManagedDiscoveryCIDROverlay(t *testing.T) {
 	root := t.TempDir()
 	configPath := filepath.Join(root, "collector.yaml")
-	writeFile(t, configPath, "site_id: site-001\ncollector:\n  id: collector-001\ndiscovery:\n  community_env: SNMP_DISCOVERY_COMMUNITY\n  max_targets: 4\n  timeout: 2s\n  retries: 0\n  max_workers: 4\n  max_probes_per_second: 5\n  probe_burst: 2\ninventory:\n  managed_path: managed.yaml\ndevices:\n  - id: static-device\n    host: 127.0.0.1\n    community_env: SNMP_COMMUNITY_STATIC\n", 0o600)
+	writeFile(t, configPath, "site_id: site-001\ncollector:\n  id: collector-001\npublisher:\n  mode: mqtt\nmqtt:\n  broker: tls://127.0.0.1:8883\n  username: collector\n  password_env: MQTT_PASSWORD\n  tls:\n    ca_file: /tmp/ca.crt\ndiscovery:\n  community_env: SNMP_DISCOVERY_COMMUNITY\n  max_targets: 4\n  timeout: 2s\n  retries: 0\n  max_workers: 4\n  max_probes_per_second: 5\n  probe_burst: 2\ninventory:\n  managed_path: managed.yaml\ndevices:\n  - id: static-device\n    host: 127.0.0.1\n    community_env: SNMP_COMMUNITY_STATIC\n", 0o600)
 	writeFile(t, filepath.Join(root, "managed.yaml"), "discovery:\n  allowed_cidrs: [\"10.255.0.0/24\"]\n  max_probes_per_second: 8\n  probe_burst: 3\n", 0o600)
 
 	cfg, err := LoadForValidation(configPath)
@@ -108,7 +108,7 @@ func TestManagedDiscoveryCIDROverlay(t *testing.T) {
 func TestZeroDevicesAllowedWhenDiscoveryConfigured(t *testing.T) {
 	root := t.TempDir()
 	configPath := filepath.Join(root, "collector.yaml")
-	writeFile(t, configPath, "site_id: site-001\ncollector:\n  id: collector-001\ndiscovery:\n  community_env: SNMP_DISCOVERY_COMMUNITY\n  max_targets: 4\n  timeout: 2s\n  retries: 0\n  max_workers: 4\n  max_probes_per_second: 5\n  probe_burst: 2\ninventory:\n  managed_path: managed.yaml\ndevices: []\n", 0o600)
+	writeFile(t, configPath, "site_id: site-001\ncollector:\n  id: collector-001\npublisher:\n  mode: mqtt\nmqtt:\n  broker: tls://127.0.0.1:8883\n  username: collector\n  password_env: MQTT_PASSWORD\n  tls:\n    ca_file: /tmp/ca.crt\ndiscovery:\n  community_env: SNMP_DISCOVERY_COMMUNITY\n  max_targets: 4\n  timeout: 2s\n  retries: 0\n  max_workers: 4\n  max_probes_per_second: 5\n  probe_burst: 2\ninventory:\n  managed_path: managed.yaml\ndevices: []\n", 0o600)
 	writeFile(t, filepath.Join(root, "managed.yaml"), "discovery:\n  allowed_cidrs: [\"10.255.0.0/24\"]\n", 0o600)
 
 	cfg, err := LoadForValidation(configPath)
@@ -165,7 +165,7 @@ func TestWriteManagedInventoryPreservesPolicy(t *testing.T) {
 func TestManagedInventoryCrossSourceDuplicateHostRejected(t *testing.T) {
 	root := t.TempDir()
 	configPath := filepath.Join(root, "collector.yaml")
-	writeFile(t, configPath, "site_id: site-001\ncollector:\n  id: collector-001\ninventory:\n  managed_path: managed.yaml\ndevices:\n  - id: static-device\n    host: 127.0.0.1\n    community_env: SNMP_COMMUNITY_STATIC\n", 0o600)
+	writeFile(t, configPath, "site_id: site-001\ncollector:\n  id: collector-001\npublisher:\n  mode: mqtt\nmqtt:\n  broker: tls://127.0.0.1:8883\n  username: collector\n  password_env: MQTT_PASSWORD\n  tls:\n    ca_file: /tmp/ca.crt\ninventory:\n  managed_path: managed.yaml\ndevices:\n  - id: static-device\n    host: 127.0.0.1\n    community_env: SNMP_COMMUNITY_STATIC\n", 0o600)
 	writeFile(t, filepath.Join(root, "managed.yaml"), "devices:\n  - id: managed-device\n    host: 127.0.0.1\n    community_env: SNMP_COMMUNITY_MANAGED\n", 0o600)
 
 	_, err := LoadForValidation(configPath)
@@ -300,6 +300,7 @@ func TestWriteManagedInventoryCleansTempOnFailure(t *testing.T) {
 }
 
 func TestManagerReloadRetainsPreviousSnapshotOnFailure(t *testing.T) {
+	t.Setenv("MQTT_PASSWORD", "secret")
 	path := writeTempConfig(t, configWithDevices("  - id: dev-001\n    host: 127.0.0.1\n    community_env: SNMP_COMMUNITY_DEV_001\n"))
 	initial, err := LoadForValidation(path)
 	if err != nil {
@@ -334,7 +335,7 @@ func TestValidateReloadRejectsStartupOnlyChanges(t *testing.T) {
 		SiteID:    "site-001",
 		Collector: CollectorConfig{ID: "collector-001"},
 		Admin:     AdminConfig{Listen: ":9090"},
-		Publisher: PublisherConfig{Mode: "stdout", Timeout: time.Second},
+		Publisher: PublisherConfig{Mode: "mqtt", Timeout: time.Second},
 		Buffer:    BufferConfig{Path: "buffer.db"},
 	}
 	next := *base
@@ -343,7 +344,7 @@ func TestValidateReloadRejectsStartupOnlyChanges(t *testing.T) {
 		t.Fatalf("site change error=%v", err)
 	}
 	next = *base
-	next.Publisher.Mode = "mqtt"
+	next.Publisher.Timeout = 2 * time.Second
 	if err := validateReload(base, &next); err == nil || !strings.Contains(err.Error(), "publisher") {
 		t.Fatalf("publisher change error=%v", err)
 	}
@@ -401,7 +402,7 @@ func TestValidatePendingDependencyMutationDetectsSequentialCycle(t *testing.T) {
 	root := t.TempDir()
 	configPath := filepath.Join(root, "collector.yaml")
 	managedPath := filepath.Join(root, "managed.yaml")
-	writeFile(t, configPath, "site_id: site-001\ncollector:\n  id: collector-001\ninventory:\n  managed_path: managed.yaml\ndevices:\n  - id: dev-001\n    host: 127.0.0.1\n    community_env: SNMP_COMMUNITY_DEV_001\n  - id: dev-002\n    host: 127.0.0.2\n    community_env: SNMP_COMMUNITY_DEV_002\n", 0o600)
+	writeFile(t, configPath, "site_id: site-001\ncollector:\n  id: collector-001\npublisher:\n  mode: mqtt\nmqtt:\n  broker: tls://127.0.0.1:8883\n  username: collector\n  password_env: MQTT_PASSWORD\n  tls:\n    ca_file: /tmp/ca.crt\ninventory:\n  managed_path: managed.yaml\ndevices:\n  - id: dev-001\n    host: 127.0.0.1\n    community_env: SNMP_COMMUNITY_DEV_001\n  - id: dev-002\n    host: 127.0.0.2\n    community_env: SNMP_COMMUNITY_DEV_002\n", 0o600)
 	writeFile(t, managedPath, "devices:\n  - id: dev-001\n    upstream_device_ids:\n      - dev-002\n", 0o600)
 
 	cfg, err := LoadForValidation(configPath)
