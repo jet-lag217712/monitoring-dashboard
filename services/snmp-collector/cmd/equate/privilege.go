@@ -7,9 +7,10 @@ import (
 )
 
 var privilegedCommands = map[string]bool{
-	"configure": true,
-	"view":      true,
-	"users":     true,
+	"configure":     true,
+	"restore":       true,
+	"view":          true,
+	"users":         true,
 	"sites":         true,
 	"upgrade":       true,
 	"reset":         true,

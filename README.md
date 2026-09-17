@@ -122,6 +122,7 @@ Mutations use prepare → confirm → commit → reload. After editing a value,
 | Command | Purpose |
 |---------|---------|
 | [`equate configure`](#equate-configure) | First-boot or reconfigure setup wizard; site/user modes; global temperature |
+| [`equate restore`](#equate-restore) | Rehydrate `/run/equate` secrets and start the stack after power loss or reboot |
 | [`equate sites`](#equate-sites) | List configured sites or delete one site |
 | [`equate upgrade`](#equate-upgrade) | In-place release upgrade (online `.eqa` channel or offline bundle) and rollback |
 | `equate users` | Manage local PAM-backed appliance users |
@@ -191,6 +192,39 @@ Notes:
 - Temperature apply fails if any site collector control socket is unreachable.
 - After a normal `equate reset`, run `sudo equate configure` again before
   returning the appliance to service.
+- After a power cut or reboot, run `sudo equate restore` instead of walking
+  the configure wizard. Restore does not rediscover devices.
+
+---
+
+## `equate restore`
+
+### What it does
+
+`equate restore` brings a configured appliance back after `/run/equate` is
+wiped (reboot or power loss). It copies the durable rendered-secret backup
+from `/var/lib/equate/rendered`, overlays SNMP communities from the deploy
+`.env`, starts Compose, syncs database role passwords, and waits for site
+collectors. It does not open the setup TUI, wipe PostgreSQL, or run a site
+scan.
+
+### Purpose
+
+Use restore when the VM comes back but the dashboard or collectors are down
+because rendered MQTT/TLS/compose secrets lived only on tmpfs.
+
+### How to use it
+
+```bash
+sudo equate restore
+```
+
+Notes:
+
+- The appliance must already be configured (site manifest and generated
+  Compose). First boot remains `sudo equate configure`.
+- The first successful configure/bootstrap persists `/run/equate/rendered`
+  to `/var/lib/equate/rendered`. Restore fails until that backup exists.
 
 ---
 

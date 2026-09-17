@@ -37,6 +37,22 @@ EXT
   chmod 640 "${certs}/server.key"
 }
 
+persist_rendered_secrets() {
+  local src="${RUN_DIR}/rendered"
+  local dest="${VAR_DIR}/rendered"
+  if [[ ! -d "${src}" ]]; then
+    echo "persist_rendered_secrets: missing ${src}" >&2
+    return 1
+  fi
+  echo "persisting rendered secrets to ${dest}..."
+  local tmp="${dest}.copying"
+  rm -rf "${tmp}"
+  install -d -m 0755 "$(dirname "${dest}")"
+  cp -a "${src}" "${tmp}"
+  rm -rf "${dest}"
+  mv "${tmp}" "${dest}"
+}
+
 fix_mqtt_runtime_permissions() {
   local mqtt_dir="${RUN_DIR}/rendered/mqtt"
   local certs="${mqtt_dir}/certs"
@@ -234,6 +250,7 @@ EOF
 {"version":"${VERSION}","installed_at":"$(date -u +"%Y-%m-%dT%H:%M:%SZ")"}
 EOF
   chmod 0600 "${RUN_DIR}/rendered/installation.json"
+  persist_rendered_secrets
 }
 
 compose_from_release() {
@@ -453,6 +470,7 @@ upgrade_appliance_release() {
 
   merge_compose_env_for_upgrade "${COMPOSE_ENV}" "${RELEASE_DIR}/release.env" "${COMPOSE_ENV}.next"
   mv "${COMPOSE_ENV}.next" "${COMPOSE_ENV}"
+  persist_rendered_secrets
   save_upgrade_state "${old_version}" "${old_release_dir}" "${VERSION}" "${RELEASE_DIR}"
 
   # shellcheck disable=SC1091
@@ -500,6 +518,7 @@ upgrade_appliance_release() {
 {"version":"${VERSION}","installed_at":"$(date -u +"%Y-%m-%dT%H:%M:%SZ")","upgraded_from":"${old_version}"}
 EOF
   chmod 0600 "${RUN_DIR}/rendered/installation.json"
+  persist_rendered_secrets
   echo "upgrade complete: ${old_version} -> ${VERSION}"
 }
 

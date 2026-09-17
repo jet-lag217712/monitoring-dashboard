@@ -47,6 +47,9 @@ sudo equate configure --sites      # sites/SNMP/thresholds only
 sudo equate configure --users      # user management only
 sudo equate configure --temperature 80  # global temperature warning only
 
+# After power loss or reboot (no setup wizard)
+sudo equate restore
+
 # Day-2 collector configuration, per site
 equate view <site-id>
 equate sites                       # list sites

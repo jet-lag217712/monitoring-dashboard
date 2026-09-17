@@ -17,6 +17,7 @@ import (
 )
 
 const setupMarker = ".setup-complete"
+
 var applianceComposeEnv = "/run/equate/rendered/compose.env"
 
 func composeEnvArgs(deployDir string) []string {

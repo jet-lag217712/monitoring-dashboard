@@ -94,8 +94,24 @@ func runConfigureTemperature(temp float64) int {
 }
 
 func ensureApplianceRenderedSecrets(deployDir string) error {
-	const composeEnv = "/run/equate/rendered/compose.env"
+	return ensureApplianceRenderedSecretsAt(deployDir, setup.DurableRenderedDir, setup.RunRenderedDir)
+}
+
+func ensureApplianceRenderedSecretsAt(deployDir, durableDir, runDir string) error {
+	composeEnv := filepath.Join(runDir, "compose.env")
 	if _, err := os.Stat(composeEnv); err == nil {
+		return nil
+	}
+	if _, err := os.Stat(filepath.Join(durableDir, "compose.env")); err == nil {
+		if err := setup.RestoreRenderedDir(durableDir, runDir); err != nil {
+			return err
+		}
+		if err := setup.OverlaySNMPFromEnvFile(filepath.Join(deployDir, ".env"), runDir); err != nil {
+			return err
+		}
+		if err := setup.PersistRenderedDir(runDir, durableDir); err != nil {
+			return err
+		}
 		return nil
 	}
 	configureScript := filepath.Join(deployDir, "scripts", "configure-vm.sh")
