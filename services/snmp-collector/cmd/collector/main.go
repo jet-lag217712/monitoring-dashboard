@@ -265,14 +265,7 @@ func (r publisherReadiness) depthFunc() heartbeat.DepthFunc {
 }
 
 func (r publisherReadiness) storageReady() bool {
-	switch r.mode {
-	case "stdout":
-		return true
-	case "mqtt":
-		return r.store != nil && r.store.Available()
-	default:
-		return false
-	}
+	return r.store != nil && r.store.Available()
 }
 
 func (r publisherReadiness) bufferReady() bool {
@@ -280,14 +273,7 @@ func (r publisherReadiness) bufferReady() bool {
 }
 
 func (r publisherReadiness) publisherReady() bool {
-	switch r.mode {
-	case "stdout":
-		return true
-	case "mqtt":
-		return r.mqtt != nil && r.mqtt.IsConnected()
-	default:
-		return false
-	}
+	return r.mqtt != nil && r.mqtt.IsConnected()
 }
 
 func (r publisherReadiness) Snapshot() status.TransportSnapshot {
@@ -306,43 +292,39 @@ func (r publisherReadiness) Snapshot() status.TransportSnapshot {
 }
 
 func buildPublisher(mqttCtx context.Context, cfg *config.Config, m *metrics.Collector, log *slog.Logger) (publisher.Publisher, func(context.Context) error, publisherReadiness, error) {
-	switch cfg.Publisher.Mode {
-	case "stdout":
-		return publisher.NewStdoutPublisher(), func(context.Context) error { return nil }, publisherReadiness{mode: "stdout"}, nil
-	case "mqtt":
-		store, err := buffer.Open(buffer.Options{
-			Path:          cfg.Buffer.Path,
-			MaxEntries:    cfg.Buffer.MaxEntries,
-			BusyTimeoutMS: cfg.Buffer.BusyTimeoutMS,
-			Metrics:       m,
-		})
-		if err != nil {
-			return nil, nil, publisherReadiness{}, fmt.Errorf("open buffer: %w", err)
-		}
-
-		mqttClient, err := publisher.NewMQTTClient(mqttCtx, cfg.MQTT, cfg.MQTTPassword(), m, log)
-		if err != nil {
-			_ = store.Close()
-			return nil, nil, publisherReadiness{}, fmt.Errorf("mqtt client: %w", err)
-		}
-
-		flusherCtx, stopFlusher := context.WithCancel(mqttCtx)
-		bp := publisher.NewBufferedPublisher(store, mqttClient, m, log, cfg.Buffer.BatchSize, cfg.Buffer.IdleBackoff)
-		go bp.RunFlusher(flusherCtx)
-
-		shutdown := func(ctx context.Context) error {
-			stopFlusher()
-			drainErr := bp.Drain(ctx)
-			if err := store.Close(); err != nil {
-				if drainErr != nil {
-					return fmt.Errorf("drain: %v; close buffer: %w", drainErr, err)
-				}
-				return fmt.Errorf("close buffer: %w", err)
-			}
-			return drainErr
-		}
-		return bp, shutdown, publisherReadiness{mode: "mqtt", store: store, mqtt: mqttClient}, nil
-	default:
-		return nil, nil, publisherReadiness{}, fmt.Errorf("unknown publisher mode %q", cfg.Publisher.Mode)
+	if cfg.Publisher.Mode != "mqtt" {
+		return nil, nil, publisherReadiness{}, fmt.Errorf("publisher.mode must be mqtt")
 	}
+	store, err := buffer.Open(buffer.Options{
+		Path:          cfg.Buffer.Path,
+		MaxEntries:    cfg.Buffer.MaxEntries,
+		BusyTimeoutMS: cfg.Buffer.BusyTimeoutMS,
+		Metrics:       m,
+	})
+	if err != nil {
+		return nil, nil, publisherReadiness{}, fmt.Errorf("open buffer: %w", err)
+	}
+
+	mqttClient, err := publisher.NewMQTTClient(mqttCtx, cfg.MQTT, cfg.MQTTPassword(), m, log)
+	if err != nil {
+		_ = store.Close()
+		return nil, nil, publisherReadiness{}, fmt.Errorf("mqtt client: %w", err)
+	}
+
+	flusherCtx, stopFlusher := context.WithCancel(mqttCtx)
+	bp := publisher.NewBufferedPublisher(store, mqttClient, m, log, cfg.Buffer.BatchSize, cfg.Buffer.IdleBackoff)
+	go bp.RunFlusher(flusherCtx)
+
+	shutdown := func(ctx context.Context) error {
+		stopFlusher()
+		drainErr := bp.Drain(ctx)
+		if err := store.Close(); err != nil {
+			if drainErr != nil {
+				return fmt.Errorf("drain: %v; close buffer: %w", drainErr, err)
+			}
+			return fmt.Errorf("close buffer: %w", err)
+		}
+		return drainErr
+	}
+	return bp, shutdown, publisherReadiness{mode: "mqtt", store: store, mqtt: mqttClient}, nil
 }

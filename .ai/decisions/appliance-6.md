@@ -16,7 +16,7 @@ Equate has two human workflows, both driven by the repository Makefile:
 - Develop: `make appliance-bundle`, `make appliance-stage HOST=...`, `make appliance-configure` against an Equate-Appliance VM.
 - Release: existing `appliance-package`, OVA, and Azure update-channel targets.
 
-The customer/VM bundle copies only the runtime script allowlist in `appliance/scripts/runtime.manifest`. Operators on the VM use `equate`, not raw shell.
+The customer/VM bundle copies only the runtime script allowlist in `deployments/production/appliance/runtime.manifest`. Operators on the VM use `equate`, not raw shell.
 
 Removed unused Compose pathways (`deployments/end-to-end/`, `deployments/development/`, `deployments/production/cloud/`, `deployments/production/vxrail/`) and retired Terraform. The GNS3 lab stays under `remote-server/`. Collector setup accepts only the `appliance` profile.
 

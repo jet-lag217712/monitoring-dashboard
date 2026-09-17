@@ -25,19 +25,8 @@ site/{site_id}/device/{device_id}/telemetry/v2/health
 site/{site_id}/collector/{collector_id}/telemetry/v2/heartbeat
 ```
 
-Legacy v1 routes are deprecated and unsupported for deployment:
-
-```text
-site/{site_id}/device/{device_id}/metric/device
-site/{site_id}/device/{device_id}/metric/interface
-```
-
-Ingestion and collector code may still accept or emit v1 when explicitly
-configured (`publisher.telemetry_version: v1` or `both`) for emergency/lab
-use only. Route identifiers remain authoritative: ingestion cross-checks them
-against envelope identifiers and rejects mismatch, malformed IDs, unknown
-schema versions, unsupported units, invalid transitions, stale timestamps, and
-unknown event types.
+Legacy v1 routes are removed from collector and ingestion code. Historical
+ADRs that mention dual-publish remain as history.
 
 ## Formal event envelope
 

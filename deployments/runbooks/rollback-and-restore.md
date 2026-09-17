@@ -30,6 +30,5 @@ the matching release source when necessary.
 4. Start PostgreSQL, ingestion, API, and collectors in that order.
 5. Confirm current projections, observation-time ordering, and dashboard data.
 
-Use [`infrastructure/script/migrate.sh`](../../infrastructure/script/migrate.sh)
-for migrations. Document the release manifest, backup identifier, and any lost
+Use `make db-migrate DATABASE_URL=…` for migrations. Document the release manifest, backup identifier, and any lost
 telemetry before closing the incident.

@@ -308,33 +308,32 @@ func runAppliancePostConfigure(deployDir string, profile Profile) error {
 	if profile != ProfileAppliance {
 		return nil
 	}
-	script := filepath.Join(deployDir, "scripts", "post-configure.sh")
-	if _, err := os.Stat(script); err != nil {
-		return runAppliancePostConfigureInline(deployDir)
-	}
-	cmd := exec.Command("bash", script)
-	cmd.Dir = deployDir
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("post-configure: %w", err)
-	}
-	return nil
+	return AppliancePostConfigure(deployDir)
 }
 
-func runAppliancePostConfigureInline(deployDir string) error {
-	syncScript := filepath.Join(deployDir, "scripts", "sync-site-topology.sh")
-	if _, err := os.Stat(syncScript); err == nil {
-		cmd := exec.Command("bash", syncScript)
-		cmd.Dir = deployDir
-		cmd.Env = append(os.Environ(),
-			"EQUATE_DEPLOY_DIR="+deployDir,
-			"EQUATE_COMPOSE_ENV=/run/equate/rendered/compose.env",
-		)
-		cmd.Stdout = os.Stdout
-		cmd.Stderr = os.Stderr
-		if err := cmd.Run(); err != nil {
-			return fmt.Errorf("site topology sync: %w", err)
+// AppliancePostConfigure reconciles site permissions, topology, and Compose after setup.
+func AppliancePostConfigure(deployDir string) error {
+	manifest, err := LoadManifest(deployDir)
+	if err == nil && len(manifest.Sites) > 0 {
+		if err := ensureSiteOwnershipAppliance(deployDir, ProfileAppliance, manifest.Sites); err != nil {
+			return err
+		}
+		if err := finalizeSiteArtifactsPermissions(ProfileAppliance, deployDir, manifest.Sites); err != nil {
+			return err
+		}
+		if err := SyncSiteTopology(deployDir); err != nil {
+			return err
+		}
+		services := make([]string, 0, len(manifest.Sites))
+		for _, spec := range manifest.Sites {
+			if spec.ServiceName != "" {
+				services = append(services, spec.ServiceName)
+			}
+		}
+		if len(services) > 0 {
+			if err := restartCompose(deployDir, services); err != nil {
+				return err
+			}
 		}
 	}
 	args := []string{"compose"}
@@ -346,6 +345,11 @@ func runAppliancePostConfigureInline(deployDir string) error {
 	cmd.Stderr = os.Stderr
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("docker compose up: %w", err)
+	}
+	if _, err := os.Stat(filepath.Join(deployDir, manifestFile)); err == nil {
+		if err := markComplete(deployDir); err != nil {
+			return err
+		}
 	}
 	return nil
 }

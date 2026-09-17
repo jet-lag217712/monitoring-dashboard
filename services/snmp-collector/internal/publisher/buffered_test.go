@@ -94,12 +94,11 @@ func TestBufferedPublisherFlushAndMetrics(t *testing.T) {
 	defer cancel()
 	go bp.RunFlusher(ctx)
 
-	ev := events.DeviceMetricEvent{
-		SiteID:    "site-001",
-		DeviceID:  "dev-001",
-		Timestamp: time.Now().UTC(),
-		Metric:    "uptime_seconds",
-		Value:     42,
+	ev := events.DeviceTelemetryEvent{
+		EnvelopeV2: events.EnvelopeV2{
+			SiteID:   "site-001",
+			DeviceID: "dev-001",
+		},
 	}
 	if err := bp.Publish(context.Background(), ev, ev); err != nil {
 		t.Fatal(err)
@@ -135,12 +134,11 @@ func TestBufferedPublisherRetriesAfterPublishFailure(t *testing.T) {
 	defer cancel()
 	go bp.RunFlusher(ctx)
 
-	ev := events.DeviceMetricEvent{
-		SiteID:    "site-001",
-		DeviceID:  "dev-001",
-		Timestamp: time.Now().UTC(),
-		Metric:    "uptime_seconds",
-		Value:     1,
+	ev := events.DeviceTelemetryEvent{
+		EnvelopeV2: events.EnvelopeV2{
+			SiteID:   "site-001",
+			DeviceID: "dev-001",
+		},
 	}
 	if err := bp.Publish(context.Background(), ev); err != nil {
 		t.Fatal(err)

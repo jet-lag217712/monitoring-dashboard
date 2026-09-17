@@ -82,12 +82,12 @@ render_mqtt_passwords() {
 }
 
 sync_appliance_db_role_passwords() {
-  local script="${RELEASE_DIR}/scripts/sync-db-role-passwords.sh"
-  if [[ ! -f "${script}" ]]; then
-    echo "sync_appliance_db_role_passwords: missing ${script}" >&2
+  local equate_bin="${RELEASE_DIR}/bin/equate"
+  if [[ ! -x "${equate_bin}" ]]; then
+    echo "sync_appliance_db_role_passwords: missing ${equate_bin}" >&2
     return 1
   fi
-  EQUATE_RELEASE_DIR="${RELEASE_DIR}" COMPOSE_ENV="${COMPOSE_ENV}" bash "${script}"
+  EQUATE_DEPLOY_DIR="${RELEASE_DIR}" "${equate_bin}" sync-db-roles
 }
 
 bootstrap_appliance_rendered_and_stack() {

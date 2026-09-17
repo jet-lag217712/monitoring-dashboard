@@ -31,6 +31,15 @@ admin:
 snmp:
   timeout: 3s
   retries: 1
+publisher:
+  mode: mqtt
+mqtt:
+  broker: "tls://127.0.0.1:8883"
+  username: "collector"
+  password_env: "MQTT_PASSWORD"
+  qos: 1
+  tls:
+    ca_file: "/tmp/ca.crt"
 devices:
   - id: "dev-001"
     host: "127.0.0.1"
@@ -39,7 +48,7 @@ devices:
     version: "2c"
 `)
 
-	cfg, err := Load(path)
+	cfg, err := LoadForValidation(path)
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}
@@ -48,6 +57,9 @@ devices:
 	}
 	if cfg.Publisher.TelemetryVersion != "v2" {
 		t.Fatalf("telemetry_version default=%q, want v2", cfg.Publisher.TelemetryVersion)
+	}
+	if cfg.Publisher.Mode != "mqtt" {
+		t.Fatalf("publisher.mode default=%q, want mqtt", cfg.Publisher.Mode)
 	}
 	if cfg.PollInterval != 30*time.Second {
 		t.Fatalf("poll_interval=%v", cfg.PollInterval)
@@ -81,6 +93,15 @@ func TestValidateDuplicateDeviceID(t *testing.T) {
 site_id: "site-001"
 collector:
   id: "collector-001"
+publisher:
+  mode: mqtt
+mqtt:
+  broker: "tls://127.0.0.1:8883"
+  username: "collector"
+  password_env: "MQTT_PASSWORD"
+  qos: 1
+  tls:
+    ca_file: "/tmp/ca.crt"
 devices:
   - id: "dev-001"
     host: "127.0.0.1"
@@ -89,7 +110,7 @@ devices:
     host: "127.0.0.2"
     community_env: "SNMP_COMMUNITY_DEV_002"
 `)
-	_, err := Load(path)
+	_, err := LoadForValidation(path)
 	if err == nil {
 		t.Fatal("expected duplicate device id error")
 	}
@@ -100,13 +121,22 @@ func TestCommunityEnvReference(t *testing.T) {
 site_id: "site-001"
 collector:
   id: "collector-001"
+publisher:
+  mode: mqtt
+mqtt:
+  broker: "tls://127.0.0.1:8883"
+  username: "collector"
+  password_env: "MQTT_PASSWORD"
+  qos: 1
+  tls:
+    ca_file: "/tmp/ca.crt"
 devices:
   - id: "dev-001"
     host: "127.0.0.1"
     community_env: "SNMP_COMMUNITY_DEV_001"
     version: "2c"
 `)
-	cfg, err := Load(path)
+	cfg, err := LoadForValidation(path)
 	if err != nil {
 		t.Fatalf("Load: %v", err)
 	}

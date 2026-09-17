@@ -81,13 +81,14 @@ done
 
 sync_db_role_passwords_from_release() {
   local release_dir="$1"
-  local script="${release_dir}/scripts/sync-db-role-passwords.sh"
-  local compose_env="${RUN_DIR}/rendered/compose.env"
-  if [[ ! -f "${script}" || ! -f "${compose_env}" ]]; then
-    return 0
+  local equate_bin="${release_dir}/bin/equate"
+  if [[ ! -x "${equate_bin}" ]]; then
+    echo "sync database role passwords: missing ${equate_bin}" >&2
+    return 1
   fi
   echo "syncing database role passwords from release ${release_dir}..."
-  EQUATE_RELEASE_DIR="${release_dir}" COMPOSE_ENV="${compose_env}" bash "${script}"
+  EQUATE_DEPLOY_DIR="${release_dir}" "${equate_bin}" sync-db-roles
+  local compose_env="${RUN_DIR}/rendered/compose.env"
   local compose_files=(-f docker-compose.yml)
   if [[ -f "${release_dir}/docker-compose.sites.generated.yml" ]]; then
     compose_files+=(-f docker-compose.sites.generated.yml)
@@ -103,34 +104,21 @@ sync_db_role_passwords_from_release() {
 
 sync_site_topology_from_release() {
   local release_dir="$1"
-  local script="${release_dir}/scripts/sync-site-topology.sh"
-  local manifest="${release_dir}/sites/manifest.yaml"
-  if [[ ! -f "${script}" || ! -f "${manifest}" ]]; then
+  local equate_bin="${release_dir}/bin/equate"
+  if [[ ! -x "${equate_bin}" || ! -f "${release_dir}/sites/manifest.yaml" ]]; then
     return 0
   fi
-  echo "syncing site topology from ${manifest}..."
-  local sync_rc=0
-  EQUATE_DEPLOY_DIR="${release_dir}" \
-    EQUATE_COMPOSE_ENV="${RUN_DIR}/rendered/compose.env" \
-    bash "${script}" || sync_rc=$?
-  return "${sync_rc}"
+  echo "syncing site topology from ${release_dir}/sites/manifest.yaml..."
+  EQUATE_DEPLOY_DIR="${release_dir}" "${equate_bin}" sites sync
 }
 
 run_post_configure_from_release() {
   local release_dir="$1"
-  local script="${release_dir}/scripts/post-configure.sh"
   if [[ ! -f "${release_dir}/sites/manifest.yaml" ]]; then
     return 0
   fi
-  if [[ ! -x "${script}" ]]; then
-    echo "post-configure.sh missing; falling back to topology sync only" >&2
-    sync_site_topology_from_release "${release_dir}"
-    return $?
-  fi
   echo "running post-configure handoff from ${release_dir}..."
-  EQUATE_DEPLOY_DIR="${release_dir}" \
-    EQUATE_COMPOSE_ENV="${RUN_DIR}/rendered/compose.env" \
-    bash "${script}"
+  sync_site_topology_from_release "${release_dir}"
 }
 
 source_bootstrap_script() {
@@ -269,12 +257,6 @@ finalize_release_install() {
   install -d -m 0755 /etc/equate /opt/equate/scripts "${RELEASE_DIR}/scripts"
   printf '%s\n' "${RELEASE_DIR}" > /etc/equate/deploy-dir
   chmod 0644 /etc/equate/deploy-dir
-  if [[ -f "${RELEASE_DIR}/scripts/manage-users.sh" ]]; then
-    install -m 0755 "${RELEASE_DIR}/scripts/manage-users.sh" /opt/equate/scripts/manage-users.sh
-  fi
-  if [[ -f "${RELEASE_DIR}/scripts/sync-db-role-passwords.sh" ]]; then
-    install -m 0755 "${RELEASE_DIR}/scripts/sync-db-role-passwords.sh" /opt/equate/scripts/sync-db-role-passwords.sh
-  fi
   install_first_boot_console
   install_appliance_sudoers
 }

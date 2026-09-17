@@ -12,11 +12,5 @@ Examples:
 Publish:
 
 ```bash
-./appliance/scripts/publish-update-channel-azure.sh \
-  --storage-account <account> \
-  --container updates \
-  --channel stable \
-  --edition standard \
-  --arch amd64 \
-  --version <semver>
+make appliance-publish-azure STORAGE_ACCOUNT=<account> VERSION=<semver> ARCH=amd64
 ```

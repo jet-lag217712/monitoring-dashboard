@@ -9,7 +9,7 @@ import (
 func TestRunValidate(t *testing.T) {
 	dir := t.TempDir()
 	valid := filepath.Join(dir, "valid.yaml")
-	if err := os.WriteFile(valid, []byte("site_id: site-001\ncollector:\n  id: collector-001\ndevices:\n  - id: dev-001\n    host: 127.0.0.1\n    community_env: SNMP_COMMUNITY_DEV_001\n"), 0o600); err != nil {
+	if err := os.WriteFile(valid, []byte("site_id: site-001\ncollector:\n  id: collector-001\npublisher:\n  mode: mqtt\nmqtt:\n  broker: tls://127.0.0.1:8883\n  username: collector\n  password_env: MQTT_PASSWORD\n  tls:\n    ca_file: /tmp/ca.crt\ndevices:\n  - id: dev-001\n    host: 127.0.0.1\n    community_env: SNMP_COMMUNITY_DEV_001\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
 	if got := runValidate([]string{"-config", valid}); got != 0 {

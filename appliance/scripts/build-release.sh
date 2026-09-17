@@ -130,7 +130,6 @@ TAG_SUFFIX="${VERSION}-${ARCH}"
 BUNDLE_DIR="${ROOT}/dist/appliance-${ARCH}-${VERSION}"
 IMAGES_DIR="${BUNDLE_DIR}/images"
 DEPLOY_SRC="${ROOT}/deployments/production/appliance"
-SCRIPTS_SRC="${ROOT}/appliance/scripts"
 
 rm -rf "${BUNDLE_DIR}"
 mkdir -p "${IMAGES_DIR}"
@@ -160,8 +159,6 @@ BACKEND_API_TAG="$(build_local_image backend-api "${ROOT}/services/backend-api")
 FRONTEND_TAG="$(build_local_image frontend "${ROOT}/frontend" \
   --build-arg "VITE_API_BASE_URL=/api" \
   --build-arg "VITE_AUTH_MODE=appliance_local" \
-  --build-arg "VITE_GOOGLE_CLIENT_ID=" \
-  --build-arg "VITE_DEMO_ENABLED=false" \
   --build-arg "VITE_APP_VERSION=${VERSION}")"
 COLLECTOR_TAG="$(build_local_image snmp-collector "${ROOT}/services/snmp-collector")"
 
@@ -248,14 +245,12 @@ trim_ws() {
 
 resolve_runtime_script() {
   local name="$1"
-  if [[ -f "${SCRIPTS_SRC}/${name}" ]]; then
-    printf '%s' "${SCRIPTS_SRC}/${name}"
-  elif [[ -f "${DEPLOY_SRC}/scripts/${name}" ]]; then
+  if [[ -f "${DEPLOY_SRC}/scripts/${name}" ]]; then
     printf '%s' "${DEPLOY_SRC}/scripts/${name}"
   elif [[ -f "${DEPLOY_SRC}/${name}" ]]; then
     printf '%s' "${DEPLOY_SRC}/${name}"
   else
-    echo "runtime.manifest lists ${name} but the file was not found" >&2
+    echo "runtime.manifest lists ${name} but the file was not found under ${DEPLOY_SRC}" >&2
     exit 1
   fi
 }
@@ -269,7 +264,7 @@ cp "${DEPLOY_SRC}/configs/"*.yaml "${BUNDLE_DIR}/configs/"
 cp -R "${ROOT}/database/migrations" "${BUNDLE_DIR}/migrations"
 mkdir -p "${BUNDLE_DIR}/scripts"
 
-RUNTIME_MANIFEST="${SCRIPTS_SRC}/runtime.manifest"
+RUNTIME_MANIFEST="${DEPLOY_SRC}/runtime.manifest"
 if [[ ! -f "${RUNTIME_MANIFEST}" ]]; then
   echo "missing runtime allowlist: ${RUNTIME_MANIFEST}" >&2
   exit 1
@@ -278,18 +273,12 @@ while IFS= read -r line || [[ -n "${line}" ]]; do
   line="$(trim_ws "${line}")"
   [[ -z "${line}" || "${line}" == \#* ]] && continue
   src="$(resolve_runtime_script "${line}")"
-  if [[ "${line}" == "bootstrapper.sh" ]]; then
-    cp "${src}" "${BUNDLE_DIR}/bootstrapper.sh"
-  else
-    cp "${src}" "${BUNDLE_DIR}/scripts/${line}"
-  fi
+  cp "${src}" "${BUNDLE_DIR}/scripts/${line}"
 done < "${RUNTIME_MANIFEST}"
-chmod 0755 "${BUNDLE_DIR}/bootstrapper.sh"
 
-cp "${SCRIPTS_SRC}/equate-auth-broker.service" "${BUNDLE_DIR}/scripts/equate-auth-broker.service"
-for unit in equate-first-boot.service getty-tty1-override.conf equate-appliance.sudoers; do
-  if [[ -f "${SCRIPTS_SRC}/${unit}" ]]; then
-    cp "${SCRIPTS_SRC}/${unit}" "${BUNDLE_DIR}/scripts/${unit}"
+for unit in equate-auth-broker.service equate-first-boot.service getty-tty1-override.conf equate-appliance.sudoers; do
+  if [[ -f "${DEPLOY_SRC}/scripts/${unit}" ]]; then
+    cp "${DEPLOY_SRC}/scripts/${unit}" "${BUNDLE_DIR}/scripts/${unit}"
   fi
 done
 chmod 0755 "${BUNDLE_DIR}/scripts/"*.sh

@@ -31,7 +31,6 @@ on:
         type: choice
         options:
           - standard
-          - noauth
         default: standard
 
 permissions:

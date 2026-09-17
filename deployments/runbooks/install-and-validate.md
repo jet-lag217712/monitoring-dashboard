@@ -44,7 +44,7 @@ the published HTTPS endpoint.
 
 ```bash
 make appliance-verify
-/usr/local/lib/equate/verify-ova-import.sh --configured
+make appliance-verify-ova CONFIGURED=1
 ```
 
 Confirm dashboard login with two local PAM-backed users, configure at least two

@@ -22,6 +22,8 @@ remote-server/*
 !remote-server/setup-gns3-bridge.sh
 !remote-server/smoke_mqtt_v2_to_api.sh
 !remote-server/mqtt_outage_drill.sh
+!remote-server/lab-appliance-setup.sh
+!remote-server/lab-appliance-upgrade.sh
 
 # IDE Files
 .idea/

@@ -4,4 +4,4 @@
 %equate-appliance ALL=(root) NOPASSWD: /usr/local/bin/equate users *
 %equate-appliance ALL=(root) NOPASSWD: /usr/local/bin/equate sites *
 %equate-appliance ALL=(root) NOPASSWD: /usr/local/bin/equate upgrade *
-%equate-appliance ALL=(root) NOPASSWD: /opt/equate/scripts/manage-users.sh *
+%equate-appliance ALL=(root) NOPASSWD: /usr/local/bin/equate sync-db-roles

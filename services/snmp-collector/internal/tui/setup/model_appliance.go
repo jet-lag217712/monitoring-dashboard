@@ -102,7 +102,6 @@ func (m model) updateAdminUser(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) createInitialAdmin() tea.Cmd {
-	deployDir := m.deployDir
 	username := strings.TrimSpace(m.adminUsernameInput.Value())
 	password := m.adminPasswordInput.Value()
 	confirm := m.adminConfirmInput.Value()
@@ -113,11 +112,7 @@ func (m model) createInitialAdmin() tea.Cmd {
 		if password != confirm {
 			return asyncDoneMsg{err: fmt.Errorf("password confirmation does not match")}
 		}
-		helper, err := resolvePamHelper(deployDir)
-		if err != nil {
-			return asyncDoneMsg{err: err}
-		}
-		if err := pamUserCreate(helper, username, password); err != nil {
+		if err := pamUserCreate(username, password); err != nil {
 			return asyncDoneMsg{err: err}
 		}
 		return asyncDoneMsg{body: fmt.Sprintf("Created initial administrator %q.", username)}
@@ -125,13 +120,8 @@ func (m model) createInitialAdmin() tea.Cmd {
 }
 
 func (m model) loadExistingAdmins() tea.Cmd {
-	deployDir := m.deployDir
 	return func() tea.Msg {
-		helper, err := resolvePamHelper(deployDir)
-		if err != nil {
-			return existingAdminsMsg{err: err}
-		}
-		hasExisting, body, err := pamHasExistingUsers(helper)
+		hasExisting, body, err := pamHasExistingUsers()
 		if err != nil {
 			return existingAdminsMsg{err: err}
 		}
@@ -276,13 +266,8 @@ func (m model) updateUsersFocus() model {
 }
 
 func (m model) refreshUsersList() tea.Cmd {
-	deployDir := m.deployDir
 	return func() tea.Msg {
-		helper, err := resolvePamHelper(deployDir)
-		if err != nil {
-			return asyncDoneMsg{err: err}
-		}
-		out, err := pamUserList(helper)
+		out, err := pamUserList()
 		if err != nil {
 			return asyncDoneMsg{err: err}
 		}
@@ -295,16 +280,11 @@ func (m model) refreshUsersList() tea.Cmd {
 }
 
 func (m model) runUsersAction() tea.Cmd {
-	deployDir := m.deployDir
 	mode := m.usersMode
 	username := strings.TrimSpace(m.usersUsername.Value())
 	password := m.usersPassword.Value()
 	confirm := m.usersConfirm.Value()
 	return func() tea.Msg {
-		helper, err := resolvePamHelper(deployDir)
-		if err != nil {
-			return asyncDoneMsg{err: err}
-		}
 		switch mode {
 		case "create":
 			if username == "" || password == "" {
@@ -313,7 +293,7 @@ func (m model) runUsersAction() tea.Cmd {
 			if password != confirm {
 				return asyncDoneMsg{err: fmt.Errorf("password confirmation does not match")}
 			}
-			if err := pamUserCreate(helper, username, password); err != nil {
+			if err := pamUserCreate(username, password); err != nil {
 				return asyncDoneMsg{err: err}
 			}
 			return asyncDoneMsg{body: fmt.Sprintf("Created user %q.", username)}
@@ -321,7 +301,7 @@ func (m model) runUsersAction() tea.Cmd {
 			if username == "" {
 				return asyncDoneMsg{err: fmt.Errorf("username is required")}
 			}
-			if err := pamUserDisable(helper, username); err != nil {
+			if err := pamUserDisable(username); err != nil {
 				return asyncDoneMsg{err: err}
 			}
 			return asyncDoneMsg{body: fmt.Sprintf("Disabled user %q.", username)}
@@ -329,7 +309,7 @@ func (m model) runUsersAction() tea.Cmd {
 			if username == "" {
 				return asyncDoneMsg{err: fmt.Errorf("username is required")}
 			}
-			if err := pamUserEnable(helper, username); err != nil {
+			if err := pamUserEnable(username); err != nil {
 				return asyncDoneMsg{err: err}
 			}
 			return asyncDoneMsg{body: fmt.Sprintf("Enabled user %q.", username)}
@@ -340,7 +320,7 @@ func (m model) runUsersAction() tea.Cmd {
 			if confirm != "DELETE" {
 				return asyncDoneMsg{err: fmt.Errorf("type DELETE to confirm removal")}
 			}
-			if err := pamUserDelete(helper, username); err != nil {
+			if err := pamUserDelete(username); err != nil {
 				return asyncDoneMsg{err: err}
 			}
 			return asyncDoneMsg{body: fmt.Sprintf("Deleted user %q.", username)}
@@ -351,7 +331,7 @@ func (m model) runUsersAction() tea.Cmd {
 			if password != confirm {
 				return asyncDoneMsg{err: fmt.Errorf("password confirmation does not match")}
 			}
-			if err := pamUserReset(helper, username, password); err != nil {
+			if err := pamUserReset(username, password); err != nil {
 				return asyncDoneMsg{err: err}
 			}
 			return asyncDoneMsg{body: fmt.Sprintf("Reset password for %q.", username)}

@@ -9,11 +9,12 @@ architecture, decisions, standards, and roadmap documentation.
 monitoring-dashboard/
 ├── .ai/                         canonical project guidance
 ├── Makefile                     develop (appliance VM) and release entry points
+├── make/                        develop.mk and release.mk includes
 ├── deployments/production/
-│   └── appliance/               supported local appliance Compose runtime
+│   └── appliance/               supported local appliance Compose runtime and host scripts
 ├── deployments/update-channel/  Azure Blob channel manifest examples/schema
 ├── deployments/runbooks/        operator procedures
-├── appliance/scripts/           release, VM, OVA, .eqa package/publish scripts
+├── appliance/scripts/           release, OVA, .eqa package/publish scripts
 ├── appliance/keys/              update-signing public key (no private keys)
 ├── services/
 │   ├── snmp-collector/           polling, TUI, outbox, equate upgrade, health evidence

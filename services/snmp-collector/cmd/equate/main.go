@@ -30,6 +30,8 @@ func main() {
 		code = runView(os.Args[2:])
 	case "sites":
 		code = runSites(os.Args[2:])
+	case "sync-db-roles":
+		code = runSyncDBRoles(os.Args[2:])
 	case "status":
 		code = runStatus(os.Args[2:])
 	case "reset":
@@ -56,7 +58,7 @@ func usage() {
 	fmt.Fprintf(os.Stderr, "  reset       Stop containers and clear setup state (--hard for full wipe, no restart)\n")
 	fmt.Fprintf(os.Stderr, "  upgrade     In-place upgrade (channel, --bundle, --check, --rollback)\n")
 	fmt.Fprintf(os.Stderr, "  view <site> Open per-site collector operator TUI\n")
-	fmt.Fprintf(os.Stderr, "  sites       List or delete configured sites (list, delete)\n")
+	fmt.Fprintf(os.Stderr, "  sites       List, sync, or delete configured sites\n")
 	fmt.Fprintf(os.Stderr, "  status      Summarize stack health\n")
 	fmt.Fprintf(os.Stderr, "  version     Show release version\n")
 }

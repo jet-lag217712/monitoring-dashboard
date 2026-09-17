@@ -72,6 +72,7 @@ func TestThresholdCommitRejectsUnknownDevice(t *testing.T) {
 }
 
 func TestDependencyCommitRejectsCycleAcrossSequentialCommits(t *testing.T) {
+	t.Setenv("MQTT_PASSWORD", "secret")
 	root := t.TempDir()
 	configPath := filepath.Join(root, "collector.yaml")
 	managedPath := filepath.Join(root, "managed.yaml")
@@ -79,7 +80,7 @@ func TestDependencyCommitRejectsCycleAcrossSequentialCommits(t *testing.T) {
 	auditPath := filepath.Join(root, "a.log")
 	t.Cleanup(func() { _ = os.Remove(socketPath) })
 
-	writeFile(t, configPath, "site_id: site-001\ncollector:\n  id: collector-001\ninventory:\n  managed_path: managed.yaml\nadmin:\n  listen: \"127.0.0.1:0\"\n  control_socket: "+strconvQuote(socketPath)+"\nhealth:\n  temperature_warning_c: 65\ndevices:\n  - id: dev-001\n    host: 127.0.0.1\n    community_env: SNMP_COMMUNITY_DEV_001\n  - id: dev-002\n    host: 127.0.0.2\n    community_env: SNMP_COMMUNITY_DEV_002\n")
+	writeFile(t, configPath, "site_id: site-001\ncollector:\n  id: collector-001\npublisher:\n  mode: mqtt\nmqtt:\n  broker: tls://127.0.0.1:8883\n  username: collector\n  password_env: MQTT_PASSWORD\n  tls:\n    ca_file: /tmp/ca.crt\ninventory:\n  managed_path: managed.yaml\nadmin:\n  listen: \"127.0.0.1:0\"\n  control_socket: "+strconvQuote(socketPath)+"\nhealth:\n  temperature_warning_c: 65\ndevices:\n  - id: dev-001\n    host: 127.0.0.1\n    community_env: SNMP_COMMUNITY_DEV_001\n  - id: dev-002\n    host: 127.0.0.2\n    community_env: SNMP_COMMUNITY_DEV_002\n")
 	writeFile(t, managedPath, "devices: []\n")
 
 	cfg, err := config.LoadForValidation(configPath)

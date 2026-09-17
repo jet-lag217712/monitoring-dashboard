@@ -22,6 +22,12 @@ func runSites(args []string) int {
 			return 2
 		}
 		return runSitesList()
+	case "sync":
+		if len(args) != 1 {
+			fmt.Fprintln(os.Stderr, "usage: equate sites sync")
+			return 2
+		}
+		return runSitesSync()
 	case "delete":
 		return runSitesDelete(args[1:])
 	case "help", "-h", "--help":
@@ -39,6 +45,7 @@ func sitesUsage() {
 	fmt.Fprintln(os.Stderr, "")
 	fmt.Fprintln(os.Stderr, "Commands:")
 	fmt.Fprintln(os.Stderr, "  list                         List configured sites from manifest (default)")
+	fmt.Fprintln(os.Stderr, "  sync                         Upsert site topology and reconcile collectors")
 	fmt.Fprintln(os.Stderr, "  delete <site-id> [--yes]     Remove a site (collector, artifacts, DB rows)")
 }
 
@@ -59,6 +66,20 @@ func runSitesList() int {
 		fmt.Fprintf(w, "%s\t%s\t%s\t%s\n", spec.SiteID, spec.ServiceName, spec.AdminURL(), spec.CIDR)
 	}
 	_ = w.Flush()
+	return 0
+}
+
+func runSitesSync() int {
+	deployDir, err := resolveDeployDir()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "sites: %v\n", err)
+		return 1
+	}
+	if err := setup.AppliancePostConfigure(deployDir); err != nil {
+		fmt.Fprintf(os.Stderr, "sites: %v\n", err)
+		return 1
+	}
+	fmt.Fprintln(os.Stdout, "site topology and collectors reconciled")
 	return 0
 }
 
@@ -249,17 +270,5 @@ func lookupEnvFile(path, key string) string {
 }
 
 func runSyncSiteTopology(deployDir string) error {
-	script := filepath.Join(deployDir, "scripts", "sync-site-topology.sh")
-	if _, err := os.Stat(script); err != nil {
-		return nil
-	}
-	cmd := exec.Command("bash", script)
-	cmd.Dir = deployDir
-	cmd.Env = append(os.Environ(),
-		"EQUATE_DEPLOY_DIR="+deployDir,
-		"EQUATE_COMPOSE_ENV=/run/equate/rendered/compose.env",
-	)
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	return setup.SyncSiteTopology(deployDir)
 }

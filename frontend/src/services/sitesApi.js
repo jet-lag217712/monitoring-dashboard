@@ -1,14 +1,6 @@
-import { apiUrl, isApplianceAuth } from '../config/api.js'
+import { apiUrl } from '../config/api.js'
 
-let authTokenProvider = () => null
 let csrfTokenProvider = () => null
-
-/** Register a function that returns the current Google ID token (or null). */
-export function setAuthTokenProvider(provider) {
-  authTokenProvider = typeof provider === 'function' ? provider : () => null
-}
-
-/** Register a function that returns the current appliance CSRF token (or null). */
 export function setCsrfTokenProvider(provider) {
   csrfTokenProvider = typeof provider === 'function' ? provider : () => null
 }
@@ -23,19 +15,10 @@ export class ApiError extends Error {
 
 async function fetchJson(path, errorMessage, options = {}) {
   const headers = { Accept: 'application/json', ...(options.headers ?? {}) }
-  const fetchOptions = { ...options, headers }
-
-  if (isApplianceAuth()) {
-    fetchOptions.credentials = 'include'
-    const csrf = csrfTokenProvider()
-    if (csrf) {
-      headers['X-CSRF-Token'] = csrf
-    }
-  } else {
-    const token = authTokenProvider()
-    if (token) {
-      headers.Authorization = `Bearer ${token}`
-    }
+  const fetchOptions = { ...options, headers, credentials: 'include' }
+  const csrf = csrfTokenProvider()
+  if (csrf) {
+    headers['X-CSRF-Token'] = csrf
   }
 
   const url = apiUrl(path)
@@ -66,10 +49,6 @@ export function updateSiteLocation(siteId, location) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ location }),
   })
-}
-
-export function fetchTestConfigFromApi() {
-  return fetchJson('/api/test-config', 'Test config request failed')
 }
 
 export function fetchDeviceFromApi(deviceId, siteId) {

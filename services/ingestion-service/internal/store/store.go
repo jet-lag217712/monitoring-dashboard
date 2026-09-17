@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/equate/ogsd/services/ingestion-service/internal/transform"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -64,82 +63,6 @@ func (s *Store) Close() {
 // Pool exposes the underlying pool (tests / health checks).
 func (s *Store) Pool() *pgxpool.Pool {
 	return s.pool
-}
-
-// PersistDeviceSample upserts inventory and inserts a device metric sample.
-func (s *Store) PersistDeviceSample(ctx context.Context, sample transform.DeviceSample) (Result, error) {
-	tx, err := s.pool.Begin(ctx)
-	if err != nil {
-		return 0, fmt.Errorf("begin tx: %w", err)
-	}
-	defer tx.Rollback(ctx) //nolint:errcheck
-
-	if err := upsertSite(ctx, tx, sample.SiteUUID, sample.SiteName); err != nil {
-		return 0, err
-	}
-	if err := upsertDevice(ctx, tx, sample.DeviceUUID, sample.SiteUUID, sample.DeviceHostname, sample.DeviceIPAddress, sample.CollectedAt); err != nil {
-		return 0, err
-	}
-
-	metricTypeID, err := lookupMetricType(ctx, tx, sample.MetricName)
-	if err != nil {
-		return 0, err
-	}
-
-	tag, err := tx.Exec(ctx, `
-		INSERT INTO metric_samples (device_id, metric_type_id, value, collected_at)
-		VALUES ($1, $2, $3, $4)
-		ON CONFLICT (device_id, metric_type_id, collected_at) DO NOTHING
-	`, sample.DeviceUUID, metricTypeID, sample.Value, sample.CollectedAt)
-	if err != nil {
-		return 0, fmt.Errorf("insert metric_samples: %w", err)
-	}
-
-	if err := tx.Commit(ctx); err != nil {
-		return 0, fmt.Errorf("commit: %w", err)
-	}
-	if tag.RowsAffected() == 0 {
-		return ResultDuplicate, nil
-	}
-	return ResultInserted, nil
-}
-
-// PersistInterfaceSample upserts inventory and inserts an interface sample.
-func (s *Store) PersistInterfaceSample(ctx context.Context, sample transform.InterfaceSample) (Result, error) {
-	tx, err := s.pool.Begin(ctx)
-	if err != nil {
-		return 0, fmt.Errorf("begin tx: %w", err)
-	}
-	defer tx.Rollback(ctx) //nolint:errcheck
-
-	if err := upsertSite(ctx, tx, sample.SiteUUID, sample.SiteName); err != nil {
-		return 0, err
-	}
-	if err := upsertDevice(ctx, tx, sample.DeviceUUID, sample.SiteUUID, sample.DeviceHostname, "", sample.CollectedAt); err != nil {
-		return 0, err
-	}
-	ifaceID, err := upsertInterface(ctx, tx, sample.InterfaceUUID, sample.DeviceUUID, sample.IfIndex)
-	if err != nil {
-		return 0, err
-	}
-
-	tag, err := tx.Exec(ctx, `
-		INSERT INTO interface_samples (
-			interface_id, in_octets, out_octets, in_errors, out_errors, collected_at
-		) VALUES ($1, $2, $3, $4, $5, $6)
-		ON CONFLICT (interface_id, collected_at) DO NOTHING
-	`, ifaceID, sample.InOctets, sample.OutOctets, sample.InErrors, sample.OutErrors, sample.CollectedAt)
-	if err != nil {
-		return 0, fmt.Errorf("insert interface_samples: %w", err)
-	}
-
-	if err := tx.Commit(ctx); err != nil {
-		return 0, fmt.Errorf("commit: %w", err)
-	}
-	if tag.RowsAffected() == 0 {
-		return ResultDuplicate, nil
-	}
-	return ResultInserted, nil
 }
 
 func upsertSite(ctx context.Context, tx pgx.Tx, id uuid.UUID, name string) error {

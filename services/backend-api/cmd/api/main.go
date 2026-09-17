@@ -75,19 +75,9 @@ func main() {
 		apiHandler = rootMux
 		corsCredentials = true
 		log.Info("appliance local auth enabled")
-	case config.AuthModeGoogle:
-		verifier, err := auth.NewGoogleVerifier(ctx, cfg.GoogleClientID())
-		if err != nil {
-			log.Error("init google oidc verifier", "err", err)
-			os.Exit(1)
-		}
-		rootMux.Handle("/api/", auth.RequireGoogleOIDC(verifier, log, apiMux))
-		apiHandler = rootMux
-		log.Info("google oidc auth enabled")
-	case config.AuthModeDisabled:
-		rootMux.Handle("/api/", apiMux)
-		apiHandler = rootMux
-		log.Warn("auth disabled; /api/* is unauthenticated")
+	default:
+		log.Error("unsupported auth mode", "mode", cfg.AuthMode())
+		os.Exit(1)
 	}
 	apiHandler = handlers.NormalizePath(apiHandler)
 	apiHandler = handlers.RequestLog(log, apiHandler)

@@ -8,14 +8,14 @@ Operator-owned checklist. Not automated in CI.
 - [ ] SNMP reachability into [`remote-server/`](../../remote-server/) GNS3 lab
 - [ ] `community_env` values set locally (never committed)
 - [ ] Mosquitto CA trusted by collectors
-- [ ] Optional: `sudo remote-server/setup-gns3-bridge.sh` on the appliance VM
+- [ ] Optional: `make lab-gns3-bridge` on the appliance VM
 
 ## Connectivity and health
 
 - [ ] Collector `/healthz` and `/readyz` OK
 - [ ] Ingestion and API health OK
 - [ ] `collector tui` connects via `./run/control.sock`
-- [ ] Synthetic v2 smoke passes ([`remote-server/smoke_mqtt_v2_to_api.sh`](../../remote-server/smoke_mqtt_v2_to_api.sh))
+- [ ] Synthetic v2 smoke passes (`make lab-smoke`)
 
 ## Polling and telemetry
 
@@ -38,7 +38,7 @@ Operator-owned checklist. Not automated in CI.
 
 ## Failure drills
 
-- [ ] MQTT stop/start: collector stays up; buffer drains after restore ([`remote-server/mqtt_outage_drill.sh`](../../remote-server/mqtt_outage_drill.sh))
+- [ ] MQTT stop/start: collector stays up; buffer drains after restore (`make lab-mqtt-outage-drill`)
 - [ ] SQLite backup/restore or corrupt-DB recovery per queue remediation runbook
 - [ ] Image/config rollback leaves managed state intact when intended
 
