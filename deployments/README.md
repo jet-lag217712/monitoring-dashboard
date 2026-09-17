@@ -12,7 +12,7 @@ SNMP devices → collectors → local MQTT/TLS → ingestion → PostgreSQL
 ```
 
 Develop and release from the repository Makefile. Operators on the VM use the
-`equate` CLI. See [appliance-6](../.ai/decisions/appliance-6.md).
+`equate` CLI.
 
 ## Which directory to use
 

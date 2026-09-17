@@ -25,6 +25,10 @@ remote-server/*
 !remote-server/lab-appliance-setup.sh
 !remote-server/lab-appliance-upgrade.sh
 
+# Local agent guidance (kept on disk, not published)
+AGENTS.md
+.ai/
+
 # IDE Files
 .idea/
 

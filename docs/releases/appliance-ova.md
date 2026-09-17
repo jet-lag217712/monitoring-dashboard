@@ -1,8 +1,7 @@
 # Equate Appliance OVA Release Runbook
 
 **Status:** Engineering runbook  
-**Audience:** Release engineering, infrastructure engineers  
-**Authority:** [`.ai/project-context/appliance.md`](../../.ai/project-context/appliance.md), [`appliance-1`](../../.ai/decisions/appliance-1.md)
+**Audience:** Release engineering, infrastructure engineers
 
 The supported artifact is a **full-stack on-premises appliance**: UI/nginx, Backend API, PostgreSQL,
 Mosquitto, Ingestion, and one generated collector container per configured site
@@ -223,7 +222,6 @@ After ARM64 Fusion acceptance:
 
 ## Related documentation
 
-- Appliance architecture: [`.ai/project-context/appliance.md`](../../.ai/project-context/appliance.md)
 - Production stack: [`deployments/production/appliance/`](../../deployments/production/appliance/)
 - Post-install verifier: `make appliance-verify`
 - Re-import verifier: `make appliance-verify-ova` (`CONFIGURED=1` after first boot)

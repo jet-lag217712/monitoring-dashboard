@@ -1,7 +1,7 @@
 # System Design
 
-Canonical architecture is documented in
-[`.ai/project-context/architecture.md`](../../.ai/project-context/architecture.md).
+This diagram is the canonical local-appliance layout. Service details live in
+[`docs/architecture/`](../architecture/).
 
 ```mermaid
 flowchart LR

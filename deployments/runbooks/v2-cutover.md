@@ -2,8 +2,7 @@
 
 ## Decision
 
-Production and deployment profiles publish and consume **MQTT v2 only**
-([`.ai/decisions/collector-7.md`](../../.ai/decisions/collector-7.md)).
+Production and deployment profiles publish and consume **MQTT v2 only**.
 No production workload depended on v1 routes, so the Phase 4 dual-publish
 window is closed.
 

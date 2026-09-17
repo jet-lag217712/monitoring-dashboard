@@ -45,8 +45,7 @@ High-volume time-series and history tables are retained for 30 days by default.
 The ingestion service runs a configurable batched-delete job that prunes
 `metric_samples`, `interface_samples`, component readings, health/heartbeat
 history, `ingested_events`, and `alerts` older than the cutoff. Inventory and
-current-state projections are never deleted. See
-[`.ai/decisions/database-1.md`](../../.ai/decisions/database-1.md).
+current-state projections are never deleted.
 
 All time-series, component-reading, health-history, and heartbeat-history tables
 must index their owning entity and observation time, for example

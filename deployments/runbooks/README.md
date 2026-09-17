@@ -12,4 +12,4 @@ Operational procedures for the local Equate appliance and its SNMP Collector v2 
 | [v2-cutover.md](v2-cutover.md) | V2-only production contract and emergency override |
 | [field-acceptance-gns3.md](field-acceptance-gns3.md) | Manual GNS3/VMware lab acceptance checklist |
 
-Decision record: [`.ai/decisions/collector-7.md`](../../.ai/decisions/collector-7.md).
+See [v2-cutover.md](v2-cutover.md) for the production MQTT contract.

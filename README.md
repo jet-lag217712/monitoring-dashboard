@@ -488,10 +488,9 @@ Prints `equate <version> (<git-commit>) built <timestamp>`.
 | [`appliance/scripts/`](appliance/scripts/) | Offline release, VM preparation, OVA packaging, `.eqa` publish |
 | [`docs/releases/appliance-ova.md`](docs/releases/appliance-ova.md) | OVA build, first boot, acceptance, and handoff runbook |
 | [`docs/releases/appliance-updates.md`](docs/releases/appliance-updates.md) | Connected `.eqa` updates, signing, and Azure publish |
-| [`docs/architecture/`](docs/architecture/) | v2 contracts and schemas (boundaries: [`.ai/project-context/`](.ai/project-context/)) |
+| [`docs/architecture/`](docs/architecture/) | v2 contracts and schemas |
 | [`deployments/runbooks/`](deployments/runbooks/) | Installation, TUI operations, rotation, recovery, and rollback |
 | [`remote-server/`](remote-server/) | GNS3 laboratory network fixtures |
-| [`.ai/`](.ai/) | Canonical project context, decisions, standards, and roadmap |
 
 ## Develop on an Equate-Appliance VM
 

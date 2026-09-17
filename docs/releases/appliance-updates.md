@@ -1,8 +1,7 @@
 # Equate appliance connected updates
 
 **Status:** Engineering  
-**Audience:** Release engineering, appliance operators  
-**Authority:** [`.ai/decisions/appliance-4.md`](../../.ai/decisions/appliance-4.md), [`.ai/project-context/appliance.md`](../../.ai/project-context/appliance.md)
+**Audience:** Release engineering, appliance operators
 
 Connected updates let a configured appliance fetch a signed `.eqa` release from
 **Azure Blob Storage** (or compatible HTTPS static hosting), verify it, and apply

@@ -38,8 +38,7 @@ collector still polls every dependent; a responding dependent is
 Healthy/Warning regardless of failed upstreams. Local health events use
 transitions `initial`, `entered`, and `recovered` only. Phase 4 publishes those
 transitions as MQTT v2 health envelopes when `publisher.telemetry_version` is
-`v2` or `both` (deployment default is `v2`; see
-[`collector-7.md`](../../.ai/decisions/collector-7.md)).
+`v2` or `both` (deployment default is `v2`).
 
 ## Discovery and local administration
 
@@ -56,8 +55,7 @@ The collector retains MQTT/TLS QoS 1, a durable SQLite outbox, and at-least-once
 ## Phase 0 contract artifacts
 
 The formal envelope and event schemas are in
-[`docs/schemas/snmp-collector-v2/`](../schemas/snmp-collector-v2/). The
-collector decision record is [`collector-1.md`](../../.ai/decisions/collector-1.md),
-and Cisco/Arista evidence is tracked in
+[`docs/schemas/snmp-collector-v2/`](../schemas/snmp-collector-v2/).
+Cisco/Arista evidence is tracked in
 [`snmp-vendor-mappings.md`](snmp-vendor-mappings.md). These artifacts define
 the producer boundary before runtime profile or health code is added.
