@@ -93,6 +93,10 @@ body {
   justify-self: start;
 }
 
+.nav-logo:visited {
+  color: var(--ink);
+}
+
 .logo-mark { width: 30px; height: 30px; display: grid; place-items: center; flex-shrink: 0; }
 .logo-mark svg { width: 30px; height: 30px; overflow: visible; }
 .logo-mark img { width: 30px; height: 30px; display: block; }
@@ -142,6 +146,51 @@ body {
 .nav-sign-out:hover {
   border-color: var(--ink);
   color: var(--ink);
+}
+
+.nav-wall {
+  margin-right: 8px;
+  color: var(--ink-muted);
+  text-decoration: none;
+  text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  transition: color 0.15s ease;
+}
+
+.nav-wall:visited {
+  color: var(--ink-muted);
+}
+
+.nav-wall:hover,
+.nav-wall.is-active,
+.nav-wall.is-active:visited {
+  color: var(--ink);
+}
+
+.wall-page-copy {
+  max-width: 42rem;
+  margin-bottom: 20px;
+}
+
+.wall-action-link {
+  display: inline-block;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--salmon);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.wall-action-link:hover {
+  color: var(--salmon-dark);
+}
+
+.wall-action-link:visited {
+  color: var(--salmon);
 }
 
 /* ── SIGN IN ── */

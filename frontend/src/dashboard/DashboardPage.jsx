@@ -1,8 +1,10 @@
+import { useOutletContext } from 'react-router-dom'
 import DeviceDetail from '../devices/DeviceDetail.jsx'
 import SiteDetail from '../sites/SiteDetail.jsx'
 import SitesGrid from '../sites/SitesGrid.jsx'
 
-export default function DashboardPage({ dashboard }) {
+export default function DashboardPage() {
+  const dashboard = useOutletContext()
   const {
     deviceDetail,
     deviceError,

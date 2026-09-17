@@ -1,8 +1,11 @@
+import { Link, useLocation } from 'react-router-dom'
 import logoUrl from '../../assets/logo.svg'
 import SearchBar from '../common/SearchBar.jsx'
+import { isWallPath, paths } from '../config/paths.js'
 
 export default function Nav({
   onLogoClick,
+  onWallClick,
   user,
   onSignOut,
   searchQuery,
@@ -10,14 +13,17 @@ export default function Nav({
   onSearchFocus,
   onSearchClear,
 }) {
+  const location = useLocation()
+  const wallActive = isWallPath(location.pathname)
+
   return (
     <nav className="app-nav">
-      <span className="nav-logo" onClick={onLogoClick}>
+      <Link to={paths.home()} className="nav-logo" onClick={onLogoClick}>
         <span className="logo-mark">
           <img src={logoUrl} alt="Equate Logo" />
         </span>
         Equate
-      </span>
+      </Link>
 
       <SearchBar
         variant="nav"
@@ -30,6 +36,13 @@ export default function Nav({
       />
 
       <div className="nav-right">
+        <Link
+          to={paths.wall()}
+          className={`nav-wall${wallActive ? ' is-active' : ''}`}
+          onClick={onWallClick}
+        >
+          Wall
+        </Link>
         {user && (
           <>
             {(user.name || user.email) && (

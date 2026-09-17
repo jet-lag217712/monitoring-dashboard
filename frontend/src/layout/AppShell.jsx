@@ -11,6 +11,7 @@ export default function AppShell({ children, dashboard, auth }) {
     <div className="app-layout">
       <Nav
         onLogoClick={dashboard.handleBack}
+        onWallClick={dashboard.handleWallClick}
         user={auth?.user}
         onSignOut={auth?.signOut}
         searchQuery={dashboard.searchQuery}

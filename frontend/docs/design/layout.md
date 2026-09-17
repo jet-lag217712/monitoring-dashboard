@@ -1,6 +1,6 @@
 # Layout & Page Structure
 
-> **For AI agents:** This file documents how the dashboard's pages are structured, how the layout shell works, how navigation integrates with content, and how the two main views (All Sites and Site Detail) are composed. Use this as the reference when building new pages or extending existing ones.
+> **For AI agents:** This file documents how the dashboard's pages are structured, how the layout shell works, how navigation integrates with content, and how the routed views (All Sites, Site Detail, Device Detail, Wall) are composed. Use this as the reference when building new pages or extending existing ones.
 
 ---
 
@@ -67,21 +67,26 @@ The nav is `position: fixed`, spanning the full viewport width (`left: 0; right:
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│  [logo mark]  Network Dashboard     n sites · n devices│
+│  [logo mark]  Equate          ⌕ search    Wall  user   │
 │   ←─ .nav-logo ──────────────────────────────────────→ │
 │                                     ←─── .nav-right ──→│
 └────────────────────────────────────────────────────────┘
 ```
 
 **Left section (`.nav-logo`):**
-- Logo SVG (`30×30px`) + wordmark text "Network Dashboard"
-- Entire `.nav-logo` is clickable — triggers navigation back to All Sites view
-- Renders as a `<span>` with `cursor: pointer` (not an anchor tag; routing is state-based)
+- Logo SVG (`30×30px`) + wordmark text "Equate"
+- Entire `.nav-logo` is a `<Link>` to `/` (All Sites)
+- Clicking also closes search
+
+**Wall link (`.nav-wall`):**
+- Lives in `.nav-right`, before the user name
+- `<Link>` to `/wall`
+- Active on `/wall` and `/wall/display`
+- This is how operators reach kiosk management from the webpage
 
 **Right section (`.nav-right`):**
-- Shows live site and device counts from dashboard state
-- Format: `{n} sites · {n} network devices`
-- The `·` separator uses `.nav-sep` class for color differentiation
+- Wall link, signed-in user name, and Log out
+- The `·` separator uses `.nav-sep` class for color differentiation when counts are shown
 
 ### Logo Mark SVG
 The `//` double-slash SVG is imported as an image asset from `assets/logo.svg`. It is rendered as `<img>` inside `.logo-mark` (not inline SVG), so it cannot be styled via CSS color properties.
@@ -169,50 +174,50 @@ If `summary.active_alerts > 0`, a `.status-badge.alert` renders in the right col
 
 ---
 
-## 5 · State-Based "Routing"
+## 5 · URL Routing
 
-The application has no URL router. Navigation between views is controlled entirely by React state in `useNetworkDashboard.js`.
+The application uses `react-router-dom`. Path helpers live in `src/config/paths.js`. Do not concatenate route strings in components.
 
-| State | View rendered |
+| Path | View rendered |
 |---|---|
-| `selectedSite === null` | `<SitesGrid>` (all-sites overview) |
-| `selectedSite !== null` | `<SiteDetail>` for that site |
+| `/` | `<SitesGrid>` (all-sites overview) |
+| `/sites/:siteId` | `<SiteDetail>` for that site |
+| `/sites/:siteId/devices/:deviceKey` | `<DeviceDetail>` for that device |
+| `/wall` | `<WallEditorPage>` (kiosk control plane) |
+| `/wall/display` | `<WallDisplayPage>` (TV presentation) |
+| anything else | `<Navigate>` to `/` |
 
-`DashboardPage.jsx` makes this conditional branch:
-```jsx
-if (selectedSite) {
-  return <SiteDetail data={siteDetail} onBack={handleBack} />
-}
-return <SitesGrid ... />
-```
+`deviceKey` is the existing map key (IP, else hostname). Encode it with `encodeURIComponent`.
 
-Clicking a `<SiteCard>` calls `onSiteClick(site.site_id)` which sets `selectedSite` in state. Clicking the Back button or Nav logo calls `handleBack()` which clears `selectedSite` to `null`.
+Clicking a `<SiteCard>` navigates to `/sites/:siteId`. Clicking a device row navigates to `/sites/:siteId/devices/:deviceKey`. The Back button and Nav logo navigate to `/`. Device back navigates to that site's path.
 
-**When adding new pages:** If a third view is needed (e.g., a device detail page), extend the conditional logic in `DashboardPage.jsx` with a second state variable and follow the same pattern. Do not install a router unless multiple views need deep-linkable URLs.
+Search remains an overlay and is not reflected in the URL. Selected interface on device detail is in-memory only. Wall slot assignments, time ranges, and the wall title must not be stored in the query string — `/wall` manages them on the page; `/wall/display` only presents.
+
+**When adding new pages:** Add a path helper in `src/config/paths.js`, a `<Route>` in `App.jsx`, and update this table. Do not go back to in-memory screen state for navigable views.
 
 ---
 
 ## 6 · Data Flow Through the Layout
 
 ```
-useNetworkDashboard()
+BrowserRouter
        │
        ▼
     App.jsx
-    ├── sites, alerts, dataMode → AppShell → Nav, AlertBanner
-    └── all dashboard state     → DashboardPage
-                                      ├── [selectedSite === null] → SitesGrid
-                                      │        ├── PageHeader
-                                      │        ├── OverviewStats → StatCard ×4
-                                      │        ├── SearchBar
-                                      │        └── SiteCard ×n
-                                      └── [selectedSite !== null] → SiteDetail
-                                               ├── BackButton
-                                               ├── Detail header
-                                               └── DevicesTable → DeviceRow ×n
+    ├── unauthenticated → SignInPage (URL unchanged)
+    └── authenticated
+         ├── useMatch → selectedSite, selectedDevice
+         ├── useNetworkDashboard()
+         │      sites, alerts, search → AppShell → Nav, AlertBanner
+         └── Routes
+              ├── / → SitesGrid
+              ├── /sites/:siteId → SiteDetail
+              ├── /sites/:siteId/devices/:deviceKey → DeviceDetail
+              ├── /wall → WallEditorPage
+              └── /wall/display → WallDisplayPage
 ```
 
-All state originates in `useNetworkDashboard.js`. Components are purely presentational and receive data through props. No component fetches data directly.
+Dashboard data originates in `useNetworkDashboard.js`. Screen identity originates in the URL. Display components are presentational and receive data through props or outlet context. No component fetches data directly.
 
 ---
 

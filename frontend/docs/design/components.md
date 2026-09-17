@@ -34,11 +34,11 @@
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ ⟋⟋  Network Dashboard               4 sites · 12 devices   │
+│ ⟋⟋  Equate          ⌕ search          Wall   user  Log out │
 └─────────────────────────────────────────────────────────────┘
    ↑                                   ↑
  .nav-logo                          .nav-right
- (.logo-mark + wordmark text)       (meta text, JetBrains Mono)
+ (.logo-mark + wordmark text)       (Wall link, user, log out)
 ```
 
 ### Layout
@@ -53,13 +53,13 @@
 - `font-family: 'Epilogue', sans-serif; font-weight: 800; font-size: 1.0rem`
 - `color: var(--ink); letter-spacing: -0.02em`
 - `display: flex; align-items: center; gap: 10px`
-- `cursor: pointer` (clicking navigates back to all-sites view)
+- `cursor: pointer` (clicking navigates to `/` via `<Link>`)
 - The logo mark wraps in `.logo-mark` (30×30px, `display: grid; place-items: center`)
 
 ### `.nav-right`
 - `margin-left: auto` (pushes to far right)
 - `font-family: 'JetBrains Mono', monospace; font-size: 0.72rem; color: var(--ink-muted); letter-spacing: 0.04em`
-- Content format: `{n} sites · {n} network devices`
+- Content: Wall link, signed-in user name, Log out
 - The `·` separator uses class `.nav-sep` with `color: var(--border-strong)`
 
 ### Transitions

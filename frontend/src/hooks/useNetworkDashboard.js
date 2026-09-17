@@ -1,5 +1,7 @@
 import { useCallback, useDeferredValue, useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { POLL_INTERVAL_MS } from '../config/api.js'
+import { paths } from '../config/paths.js'
 import {
   ApiError,
   fetchAlertsFromApi,
@@ -28,14 +30,18 @@ function resolveCollectorDeviceId(deviceSummary, mapKey) {
   return deviceSummary?.device_id || deviceSummary?.hostname || mapKey
 }
 
-export function useNetworkDashboard({ enabled = true, onUnauthorized } = {}) {
+export function useNetworkDashboard({
+  enabled = true,
+  selectedSite = null,
+  selectedDevice = null,
+  onUnauthorized,
+} = {}) {
+  const navigate = useNavigate()
   const [sites, setSites] = useState([])
   const [searchQuery, setSearchQuery] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchDeviceHits, setSearchDeviceHits] = useState([])
   const [searchLoading, setSearchLoading] = useState(false)
-  const [selectedSite, setSelectedSite] = useState(null)
-  const [selectedDevice, setSelectedDevice] = useState(null)
   const [selectedInterfaceByDevice, setSelectedInterfaceByDevice] = useState({})
   const [siteDetail, setSiteDetail] = useState(null)
   const [deviceDetail, setDeviceDetail] = useState(null)
@@ -290,48 +296,42 @@ export function useNetworkDashboard({ enabled = true, onUnauthorized } = {}) {
   }
 
   const handleSiteClick = siteId => {
-    setSearchOpen(false)
-    setSearchQuery('')
-    setSelectedSite(siteId)
-    setSelectedDevice(null)
-    setDeviceDetail(null)
+    closeSearch()
+    navigate(paths.site(siteId))
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const handleBack = () => {
-    setSearchOpen(false)
-    setSearchQuery('')
-    setSelectedSite(null)
-    setSelectedDevice(null)
+    closeSearch()
     setSelectedInterfaceByDevice({})
-    setSiteDetail(null)
-    setDeviceDetail(null)
+    navigate(paths.home())
   }
 
   const handleDeviceClick = ip => {
-    setSearchOpen(false)
-    setSearchQuery('')
-    setDeviceDetail(null)
-    setDeviceError(null)
-    setSelectedDevice(ip)
+    if (!selectedSite) return
+    closeSearch()
+    navigate(paths.device(selectedSite, ip))
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const handleSearchDeviceSelect = hit => {
     if (!hit?.site_id) return
-    setSearchOpen(false)
-    setSearchQuery('')
-    setSelectedSite(hit.site_id)
-    setSelectedDevice(hit.map_key || hit.hostname || hit.ip_address)
-    setDeviceDetail(null)
-    setDeviceError(null)
+    closeSearch()
+    navigate(paths.device(hit.site_id, hit.map_key || hit.hostname || hit.ip_address))
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
 
   const handleDeviceBack = () => {
-    setSelectedDevice(null)
-    setDeviceDetail(null)
-    setDeviceError(null)
+    if (selectedSite) {
+      navigate(paths.site(selectedSite))
+      return
+    }
+    navigate(paths.home())
+  }
+
+  const handleWallClick = () => {
+    closeSearch()
+    navigate(paths.wall())
   }
 
   const handleInterfaceSelect = (deviceIp, interfaceKey) => {
@@ -383,6 +383,7 @@ export function useNetworkDashboard({ enabled = true, onUnauthorized } = {}) {
     handleRenameLocation,
     handleSearchDeviceSelect,
     handleSiteClick,
+    handleWallClick,
     lastUpdated,
     loadError,
     openSearch,
